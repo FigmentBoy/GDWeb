@@ -1,0 +1,12 @@
+[submodule "include/glm"]
+	path = include/glm
+	url = https://github.com/g-truc/glm
+[submodule "include/json"]
+	path = include/json
+	url = https://github.com/nlohmann/json
+[submodule "include/libdeflate"]
+	path = include/libdeflate
+	url = git@github.com:ebiggers/libdeflate
+[submodule "include/imgui"]
+	path = include/imgui
+	url = git@github.com:ocornut/imgui.git
