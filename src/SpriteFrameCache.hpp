@@ -19,6 +19,8 @@ public:
 
     void loadSprite(std::string path, LoadingLayer* loadingLayer=nullptr);
     void loadSpriteFramesFromPlist(std::string plistPath, LoadingLayer* loadingLayer=nullptr);
+
+    void addSpriteFrame(std::string name, std::shared_ptr<SpriteFrame> spriteFrame);
     
     std::shared_ptr<SpriteFrame> getSpriteFrameByName(std::string name);
 
