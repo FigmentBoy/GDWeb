@@ -193,12 +193,12 @@ void LevelLayer::parseLevelProperties() {
     for (auto& [key, value] : m_levelProperties) {
         if (key == "kA4") {
             switch (std::stoi(value)) {
-                case 0:
-                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(251.16f);
-                    break;
                 default:
-                case 1:
+                case 0:
                     m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(311.58f);
+                    break;
+                case 1:
+                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(251.16f);
                     break;
                 case 2:
                     m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(387.42f);
