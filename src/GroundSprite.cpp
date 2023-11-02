@@ -7,7 +7,7 @@ GroundSprite::GroundSprite(int index, LevelLayer* layer) {
     if (index == 0) index = 1;
     if (index < 8) {
         std::string name = (std::string) "groundSquare_0" + std::to_string(index) + "_001.png";
-        std::shared_ptr<RepeatForeverSprite> sprite = std::make_shared<RepeatForeverSprite>(SpriteFrameCache::get()->getSpriteFrameByName(name), 128);
+        std::shared_ptr<RepeatForeverSprite> sprite = std::make_shared<RepeatForeverSprite>(SpriteFrameCache::get()->getSpriteFrameByName(name), 128.f);
         sprite->m_position = {0, -128};
         sprite->m_zOrder = 0.0f;
         addChild(sprite);

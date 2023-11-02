@@ -87,7 +87,7 @@ void* loadResources(void* layerPtr) {
 }
 
 LoadingLayer::LoadingLayer() {
-    pthread_create(&m_thread, nullptr, loadResources, (void*)this);
+    THREAD_CREATE(m_thread, loadResources, (void*)this);
 }
 
 void LoadingLayer::update(float delta) {

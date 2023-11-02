@@ -10,3 +10,6 @@
 [submodule "include/imgui"]
 	path = include/imgui
 	url = git@github.com:ocornut/imgui.git
+[submodule "include/glfw"]
+	path = include/glfw
+	url = git@github.com:glfw/glfw

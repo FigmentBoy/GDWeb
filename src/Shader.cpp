@@ -59,6 +59,24 @@ Shader::Shader(const char* vertexFile, const char* fragmentFile) {
     glAttachShader(m_id, fragmentShader);
     glLinkProgram(m_id);
 
+    GLint linked = 0;
+    glGetProgramiv(m_id, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        GLint infoLen = 0;
+        glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &infoLen);
+        if (infoLen) {
+            char* buf = (char*) malloc(infoLen);
+            if (buf) {
+                glGetProgramInfoLog(m_id, infoLen, NULL, buf);
+                printf("Could not link shader: %s\n", buf);
+                free(buf);
+            }
+        }
+        glDeleteProgram(m_id);
+        m_id = 0;
+        return;
+    }
+
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);    
 }

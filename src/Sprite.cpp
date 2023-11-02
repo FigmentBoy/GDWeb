@@ -58,6 +58,8 @@ void Sprite::draw() {
         preDraw();
 
         m_vao->bind();
+        m_vbo->bind();
+        m_ebo->bind();
 
         m_spriteFrame->m_texture->setUniforms();
         m_spriteFrame->m_texture->bind();

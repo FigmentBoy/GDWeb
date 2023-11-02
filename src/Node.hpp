@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 
 class Node : public std::enable_shared_from_this<Node> {
@@ -43,6 +44,7 @@ public:
     virtual void onMouseScroll(double xoffset, double yoffset) {};
 
     virtual void updateModelMatrix();
+    bool mm_updatedOnce = false;
     Point mm_prvPosition;
     float mm_prvRotation;
     Point mm_prvScale;

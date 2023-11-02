@@ -9,11 +9,12 @@
 #include <glm/gtc/type_ptr.hpp>
 
 void Node::updateModelMatrix() {
-    if (m_position == mm_prvPosition && m_rotation == mm_prvRotation && 
+    if (mm_updatedOnce && m_position == mm_prvPosition && m_rotation == mm_prvRotation && 
         m_scale == mm_prvScale  && m_flipX == mm_prvFlipX && m_flipY == mm_prvFlipY && 
         m_anchorPoint == mm_prvAnchorPoint && 
         (!m_parent || m_parent->m_parentalModelMatrix == mm_prvParentalModelMatrix)) return;
 
+    mm_updatedOnce = true;
     mm_prvPosition = m_position;
     mm_prvRotation = m_rotation;
     mm_prvScale = m_scale;
@@ -198,6 +199,7 @@ void Node::addChild(std::shared_ptr<Node> child) {
 }
 
 void Node::removeFromParent() {
+    if (!m_parent) return;
     m_parent->m_children.erase(std::remove_if(m_parent->m_children.begin(), m_parent->m_children.end(), [this](std::shared_ptr<Node>& child) {
         return child.get() == this;
     }), m_parent->m_children.end());

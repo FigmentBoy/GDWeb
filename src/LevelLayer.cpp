@@ -102,7 +102,7 @@ void LevelLayer::parseLevelString() {
 
         std::vector<std::string> objSplit = split(objects[i], ",");
 
-        for (int i = 0; i < objSplit.size(); i += 2) {
+        for (int i = 0; i < objSplit.size() - (objSplit.size() % 2); i += 2) {
             objMap[objSplit[i]] = objSplit[i + 1];
         }
 

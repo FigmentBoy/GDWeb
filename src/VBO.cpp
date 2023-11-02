@@ -1,4 +1,5 @@
 #include "VBO.hpp"
+#include <stddef.h>
 
 VBO::VBO() {
     glGenBuffers(1, &m_id);

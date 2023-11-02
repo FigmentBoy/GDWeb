@@ -45,4 +45,5 @@ public:
 
     bool init();
     void mainLoop();
+    void terminate();
 };

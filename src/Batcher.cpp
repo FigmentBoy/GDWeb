@@ -5,10 +5,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <algorithm>
 #include <iostream>
 
 Batcher::Batcher() {
     m_vao = std::make_unique<VAO>();
+    m_vao->bind();
+    
     m_vbo = std::make_unique<VBO>();
     m_ebo = std::make_unique<EBO>();
 }

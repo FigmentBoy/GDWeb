@@ -8,16 +8,19 @@ file(GLOB SOURCES
     "src/*.cpp"
     "include/stb/*.cpp"
     "include/plist/*.cpp" 
-    "include/libdeflate/lib/**.c"
+    "include/libdeflate/lib/*.c"
+    "include/libdeflate/lib/**/*.c"
     "include/imgui/*.cpp"
     "include/imgui/backends/imgui_impl_glfw.cpp"
     "include/imgui/backends/imgui_impl_opengl3.cpp"
 )
 
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    configure_file("${CMAKE_SOURCE_DIR}/dist/WebEditor.html" "${CMAKE_SOURCE_DIR}/build/WebEditor.html" COPYONLY)
-else()
-    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+if(EMSCRIPTEN)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        configure_file("${CMAKE_SOURCE_DIR}/dist/WebEditor.html" "${CMAKE_SOURCE_DIR}/build/WebEditor.html" COPYONLY)
+    else()
+        set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    endif()
 endif()
 
 add_executable(WebEditor ${SOURCES})
@@ -26,18 +29,37 @@ file(GLOB RESOURCES
     "static/**/*"
 )
 
-target_compile_options(WebEditor PUBLIC -pthread)
+if (EMSCRIPTEN)
+    target_compile_options(WebEditor PUBLIC -pthread)
 
-set_target_properties(WebEditor PROPERTIES LINK_DEPENDS "${RESOURCES}")
+    set_target_properties(WebEditor PROPERTIES LINK_DEPENDS "${RESOURCES}")
 
-# We cannot use offscreen canvas with pthreads
-set_target_properties(WebEditor PROPERTIES LINK_FLAGS "${LINK_FLAGS} 
-    -sALLOW_MEMORY_GROWTH 
-    -sWASM=1 -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 
-    -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sUSE_WEBGL2=1 
-    -sFULL_ES3=1 -sUSE_GLFW=3 
-    --preload-file ../static"
-)
+    # We cannot use offscreen canvas with pthreads
+    set_target_properties(WebEditor PROPERTIES LINK_FLAGS "${LINK_FLAGS} 
+        -sALLOW_MEMORY_GROWTH 
+        -sWASM=1 -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 
+        -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sUSE_WEBGL2=1 
+        -sFULL_ES3=1 -sUSE_GLFW=3 
+        --preload-file ../static"
+    )
+else()
+    find_package(OpenGL REQUIRED)
+    add_subdirectory(include/glfw)
+
+    target_link_libraries(WebEditor PRIVATE 
+        glfw
+        glew32
+        OpenGL32
+    )
+
+    add_custom_command(
+        TARGET WebEditor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${CMAKE_SOURCE_DIR}/static
+            ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/static
+    )
+endif()
+
 
 target_include_directories(WebEditor PRIVATE 
     src
@@ -48,6 +70,7 @@ target_include_directories(WebEditor PRIVATE
     include/json/include
     include/libdeflate
     include/imgui
+    include/glfw/include
 )
 
 add_subdirectory(include/json)

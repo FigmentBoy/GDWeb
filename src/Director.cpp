@@ -11,13 +11,16 @@
 #include "GUI.hpp"
 #include "utils.hpp"
 
+#include <gl/GL.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <string>
+
+#ifdef EMSCRIPTEN
 #include <emscripten/html5.h>
 #include <emscripten.h>
-#include <string>
 
 EM_JS(int, canvas_get_width, (), {
   return window.innerWidth;
@@ -26,63 +29,80 @@ EM_JS(int, canvas_get_width, (), {
 EM_JS(int, canvas_get_height, (), {
   return window.innerHeight;
 });
+#endif
 
 bool Director::init() {
-    int width, height;
+    if (!glfwInit()) {
+        fprintf(stderr, "Failed to initialize GLFW\n");
+        return false;
+    }
 
+    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+
+    int width, height;
+    #ifdef EMSCRIPTEN
     width = canvas_get_width();
     height = canvas_get_height();
+    #else
+    const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+    width = mode->width * 0.75;
+    height = mode->height * 0.75;
+    #endif 
 
     m_windowSize.width = width;
     m_windowSize.height = height;
 
-    if (!glfwInit()) {
-        fprintf(stderr, "Failed to initialize GLFW\n");
+    m_window = glfwCreateWindow(width, height, "Editor", NULL, NULL);
+
+    if (m_window == NULL) {
+        fprintf(stderr, "Failed to open GLFW window.\n");
+        glfwTerminate();
         return false;
-    } else {
-        glfwWindowHint(GLFW_SAMPLES, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-
-        m_window = glfwCreateWindow(width, height, "Editor", NULL, NULL);
-
-        if (m_window == NULL) {
-            fprintf(stderr, "Failed to open GLFW window.\n");
-            glfwTerminate();
-            return false;
-        }
-
-        glfwSetMouseButtonCallback(m_window, +[](GLFWwindow* window, int button, int action, int mods) {
-            if (ImGui::GetIO().WantCaptureMouse) return;
-            for (auto& listener : Director::get()->m_mouseClickListeners) {
-                listener->onMouseClick(button, action, mods);
-            }
-        });
-
-        glfwSetScrollCallback(m_window, +[](GLFWwindow* window, double xoffset, double yoffset){
-            if (ImGui::GetIO().WantCaptureMouse) return;
-            for (auto& listener : Director::get()->m_mouseScrollListeners) {
-                listener->onMouseScroll(xoffset, yoffset);
-            }
-        });
-
-        glewExperimental = true;
-        if (glewInit() != GLEW_OK) {
-            fprintf(stderr, "Failed to initialize GLEW\n");
-            return false;
-        }
-
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        ImGui::StyleColorsDark();
-        ImGui_ImplGlfw_InitForOpenGL(m_window, true);
-        ImGui_ImplOpenGL3_Init("#version 300 es");
-
-        auto gui = GUI::get(); (void) gui;
     }
 
+    glfwMakeContextCurrent(m_window);
+
+    glfwSetMouseButtonCallback(m_window, +[](GLFWwindow* window, int button, int action, int mods) {
+        if (ImGui::GetIO().WantCaptureMouse) return;
+        for (auto& listener : Director::get()->m_mouseClickListeners) {
+            listener->onMouseClick(button, action, mods);
+        }
+    });
+
+    glfwSetScrollCallback(m_window, +[](GLFWwindow* window, double xoffset, double yoffset){
+        if (ImGui::GetIO().WantCaptureMouse) return;
+        for (auto& listener : Director::get()->m_mouseScrollListeners) {
+            listener->onMouseScroll(xoffset, yoffset);
+        }
+    });
+
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        fprintf(stderr, "Failed to initialize GLEW: %d\n", err);
+        return false;
+    }
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+
+    #ifdef EMSCRIPTEN
+    ImGui_ImplOpenGL3_Init("#version 300 es");
+    auto gui = GUI::get(); (void) gui;
+
+    m_defaultShader = std::make_shared<Shader>("static/shaders/defaultES.vert", "static/shaders/defaultES.frag");
+    #else
+    ImGui_ImplOpenGL3_Init("#version 330");
+    auto gui = GUI::get(); (void) gui;
+
     m_defaultShader = std::make_shared<Shader>("static/shaders/default.vert", "static/shaders/default.frag");
+    #endif
+    
     m_shader = m_defaultShader;
 
     m_camera = std::make_shared<Camera>();
@@ -100,8 +120,9 @@ void Director::mainLoop() {
     float delta = glfwGetTime() - m_prevFrameTime;
     m_prevFrameTime = glfwGetTime();
 
+    glfwMakeContextCurrent(m_window);
     glClear(GL_COLOR_BUFFER_BIT);
-    
+        
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -112,12 +133,19 @@ void Director::mainLoop() {
     m_shader->activate();
     
     int width, height;
+    #ifdef EMSCRIPTEN
     width = canvas_get_width();
     height = canvas_get_height();
+    #else
+    glfwGetFramebufferSize(m_window, &width, &height);
+    #endif 
 
     m_camera->m_viewSize = {width, height};
     glViewport(0, 0, width, height);
+
+    #ifdef EMSCRIPTEN
     emscripten_set_canvas_element_size("#canvas", width, height);
+    #endif
 
     m_windowSize.width = width;
     m_windowSize.height = height;
@@ -128,7 +156,7 @@ void Director::mainLoop() {
     m_mousePosition = {(float) x, height - (float) y};
 
     GLuint projLoc = glGetUniformLocation(Director::get()->m_shader->m_id, "ProjectionMatrix");
-    glUniformMatrix4fv(projLoc, 1, GL_TRUE, glm::value_ptr(m_camera->getProjectionMatrix()));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(m_camera->getProjectionMatrix()));
 
     m_rootNode->update(delta);
     m_rootNode->draw();
@@ -151,4 +179,9 @@ void Director::mainLoop() {
 
     glfwSwapBuffers(m_window);
     glfwPollEvents();
+}
+
+void Director::terminate() {
+    glfwTerminate();
+    glfwDestroyWindow(m_window);
 }

@@ -1,8 +1,8 @@
 #pragma once
 #include <fstream>
-#include <emscripten.h>
 #include <memory>
 #include <string>
+#include <vector>
 #include <stdexcept>
 
 template<typename ... Args>
