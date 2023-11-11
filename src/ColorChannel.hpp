@@ -40,6 +40,8 @@ public:
     std::vector<std::shared_ptr<ColorChannel>> m_childChannels;
     std::unique_ptr<GameEffect<ColorChange>> m_colorTriggers;
 
+    std::vector<std::shared_ptr<Sprite>> m_sprites;
+
     ColorChannel() : m_currColor(std::make_shared<RGBAColor>(1.0f, 1.0f, 1.0f, 1.0f)), m_baseColor({1.0f, 1.0f, 1.0f, 1.0f}), m_blending(std::make_shared<bool>(false)) {};
 
     virtual void parentUpdated(HSVAColor parentColor);

@@ -26,8 +26,12 @@ public:
     std::vector<int> m_colorChannelsWithChanges;
 
     std::vector<std::shared_ptr<Group>> m_groups;
+    
     std::map<int, std::map<float, AlphaChange>> m_rawAlphaChanges;
     std::vector<int> m_groupsWithAlphaChanges;
+
+    std::map<int, std::map<float, PositionChange>> m_rawPositionChanges;
+    std::vector<int> m_groupsWithPositionChanges;
 
     std::unique_ptr<GameEffect<SpeedChange>> m_speedChanges;
 

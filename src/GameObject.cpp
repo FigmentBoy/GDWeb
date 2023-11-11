@@ -130,7 +130,13 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 break;
         }
     }
-    
+
+    m_originalPosition = m_position;
+
+    for (auto group : properties->m_groupIDs) {
+        m_groups.push_back(layer->m_groups[group]);
+    }
+
     updateModelMatrix();
 
     // Trigger Setup
@@ -151,22 +157,22 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             break;
         case 1007:
             if (properties->targetGroup < 0) break;
-            layer->m_rawAlphaChanges[properties->targetGroup].insert({m_position.x, {properties->opacity, std::max(0.0f, properties->duration)}});
+            layer->m_rawAlphaChanges[properties->targetGroup].insert({m_position.x, {{properties->opacity}, std::max(0.0f, properties->duration)}});
             break;
         case 200:
-            layer->m_speedChanges->m_changes.insert({m_position.x, SpeedChange {251.16f}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, {{251.16f}}});
             break;
         case 201:
-            layer->m_speedChanges->m_changes.insert({m_position.x, SpeedChange {311.58f}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, {{311.58f}}});
             break;
         case 202:
-            layer->m_speedChanges->m_changes.insert({m_position.x, SpeedChange {387.42f}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, {{387.42f}}});
             break;
         case 203:
-            layer->m_speedChanges->m_changes.insert({m_position.x, SpeedChange {468.0f}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, {{468.0f}}});
             break;
         case 1334:
-            layer->m_speedChanges->m_changes.insert({m_position.x, SpeedChange {576.0f}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, {{576.0f}}});
             break;
     }
 
@@ -183,10 +189,6 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     std::shared_ptr<Sprite> sprite = std::make_shared<Sprite>(SpriteFrameCache::get()->getSpriteFrameByName(texture));
     addChild(sprite);
 
-    for (int id : properties->m_groupIDs) {
-        sprite->m_alphaModifier = layer->m_groups[id]->m_currAlpha;
-    }
-
     if (layer) {
         m_layer = layer;
 
@@ -194,9 +196,11 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
         if (colorType == "Base") {
             sprite->m_color = m_layer->m_colorChannels[m_colorChannel1]->m_currColor;
             sprite->m_blending = m_layer->m_colorChannels[m_colorChannel1]->m_blending;
+            m_layer->m_colorChannels[m_colorChannel1]->m_sprites.push_back(sprite);
         } else if (colorType == "Detail") {
             sprite->m_color = m_layer->m_colorChannels[m_colorChannel2]->m_currColor;
             sprite->m_blending = m_layer->m_colorChannels[m_colorChannel2]->m_blending;
+            m_layer->m_colorChannels[m_colorChannel2]->m_sprites.push_back(sprite);
         } else if (colorType == "Black") {
             sprite->m_color = m_layer->m_colorChannels[1010]->m_currColor;
         }
@@ -221,6 +225,12 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     };
 }
 
+void GameObject::addToGroups() {
+    for (auto group : m_groups) {
+        group->m_objects.push_back(std::static_pointer_cast<GameObject>(shared_from_this()));
+    }
+}
+
 void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     std::string texture = child["texture"];   
     std::shared_ptr<Sprite> sprite = std::make_shared<Sprite>(SpriteFrameCache::get()->getSpriteFrameByName(texture));
@@ -235,9 +245,11 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
         if (colorType == "Base") {
             sprite->m_color = m_layer->m_colorChannels[m_colorChannel1]->m_currColor;
             sprite->m_blending = m_layer->m_colorChannels[m_colorChannel1]->m_blending;
+            m_layer->m_colorChannels[m_colorChannel1]->m_sprites.push_back(sprite);
         } else if (colorType == "Detail") {
             sprite->m_color = m_layer->m_colorChannels[m_colorChannel2]->m_currColor;
             sprite->m_blending = m_layer->m_colorChannels[m_colorChannel2]->m_blending;
+            m_layer->m_colorChannels[m_colorChannel2]->m_sprites.push_back(sprite);
         } else if (colorType == "Black") {
             *sprite->m_color = {0.f, 0.f, 0.f, 1.f};
         }
@@ -251,7 +263,7 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     sprite->m_rotation = child["rot"].get<float>();
 
     if (child.contains("z")) sprite->m_zOrder = child["z"].get<int>();
-
+    
     parent->addChild(sprite);
     sprite->updateModelMatrix();
 
@@ -262,5 +274,44 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
         for (auto& grandchild : child["children"]) {
             addChildSprite(sprite, grandchild);
         }
+    }
+}
+
+void GameObject::update(float delta) {
+    Node::update(delta);
+
+    if (m_dirtyAlpha) {
+        m_dirtyAlpha = false;
+        float alpha = 1.0f;
+
+        for (auto group : m_groups) {
+            alpha *= group->m_currAlpha;
+        }
+
+        recurseChildren([alpha](std::shared_ptr<Node> node) {
+            if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
+                sprite->m_alphaModifier = alpha;
+                sprite->updateVerticeColors();
+            }
+            return true;
+        });
+    }
+
+    if (m_dirtyPosition) {
+        m_dirtyPosition = false;
+        Point position = {0, 0};
+
+        for (auto group : m_groups) {
+            position += group->m_position;
+        }
+
+        m_position = m_originalPosition + m_position;
+        
+        recurseChildren([](std::shared_ptr<Node> node) {
+            if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
+                sprite->updateVertices();
+            }
+            return true;
+        });
     }
 }

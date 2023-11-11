@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 class LevelLayer;
+class Group;
 
 using json = nlohmann::json;
 
@@ -28,6 +29,9 @@ public:
     static json m_gameObjectsJson;
     static void loadGameObjectsJson();
 
+    bool m_dirtyAlpha = false;
+    bool m_dirtyPosition = false;
+
     LevelLayer* m_layer = nullptr;
 
     int m_id = -1;
@@ -37,7 +41,14 @@ public:
     int m_colorChannel2 = -1;
     float m_defaultZOrder = 0.0f; // Used for ordering things on the same z layer and order
 
+    Point m_originalPosition;
+
+    std::vector<std::shared_ptr<Group>> m_groups;
+
     GameObject(int id, std::map<std::string, std::string> const& obj = {}, LevelLayer* layer = nullptr);
 
     void addChildSprite(std::shared_ptr<Sprite> parent, json children);
+    void addToGroups();
+    
+    void update(float delta);
 };

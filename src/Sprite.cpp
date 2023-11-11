@@ -14,8 +14,6 @@ Sprite::Sprite(std::shared_ptr<SpriteFrame> spriteFrame, RGBAColor color) {
 
     m_blending = std::make_shared<bool>(false);
 
-    m_alphaModifier = std::make_shared<float>(1.0f);
-
     m_position = {0.0f, 0.0f};
 
     m_size = spriteFrame->m_size;
@@ -79,16 +77,22 @@ void Sprite::removeFromBatcher() {
     }
 }
 
-void Sprite::updateVertices() {
-    if (muv_prevModelMatrix == m_modelMatrix && muv_prevColor == *m_color && muv_prevAlphaModifier == *m_alphaModifier 
-        && muv_prevBlending == *m_blending  && muv_prevOffset == m_offset && muv_prevSize == m_size) return;
+void Sprite::updateVerticeColors() {
+    float blendingVal = *m_blending ? 1.0f : 0.0f;
 
-    muv_prevModelMatrix = m_modelMatrix;
-    muv_prevOffset = m_offset;
-    muv_prevSize = m_size;
-    muv_prevColor = *m_color;
-    muv_prevBlending = *m_blending;
-    muv_prevAlphaModifier = *m_alphaModifier;
+    GLfloat verticies[40] = { 
+        m_verticies[0],      m_verticies[1],   	    m_verticies[2],  m_verticies[3],        m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,       m_verticies[8],         blendingVal,
+        m_verticies[10],     m_verticies[11],      	m_verticies[12], m_verticies[13],       m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,       m_verticies[18],        blendingVal,
+        m_verticies[20],    m_verticies[21],        m_verticies[22], m_verticies[23],       m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,       m_verticies[28],        blendingVal,
+        m_verticies[30],     m_verticies[31],       m_verticies[32], m_verticies[33],       m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,       m_verticies[38],        blendingVal,
+    };
+
+    for (int i = 0; i < 40; i++) m_verticies[i] = verticies[i];
+}
+
+void Sprite::updateVertices() {
+    if (!m_dirty) return;
+    m_dirty = false;
 
     Rect viewportRect = Rect(m_offset, m_size);
  
@@ -108,19 +112,19 @@ void Sprite::updateVertices() {
 
     if (m_spriteFrame->m_rotated) {
         GLfloat verticies[40] = { 
-            bottomLeftTransformed.x,  bottomLeftTransformed.y,   	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.bottom(),       m_color->r, m_color->g, m_color->b, m_color->a * *m_alphaModifier,       slot,         blendingVal,  // Lower left corner
-            topLeftTransformed.x,     topLeftTransformed.y,      	m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.bottom(),       m_color->r, m_color->g, m_color->b, m_color->a * *m_alphaModifier,       slot,         blendingVal,  // Upper left corner
-            topRightTransformed.x,    topRightTransformed.y,        m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.top(),          m_color->r, m_color->g, m_color->b, m_color->a * *m_alphaModifier,       slot,         blendingVal,  // Upper right corner
-            bottomRightTransformed.x, bottomRightTransformed.y,     m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.top(),          m_color->r, m_color->g, m_color->b, m_color->a * *m_alphaModifier,       slot,         blendingVal,  // Lower right corner
+            bottomLeftTransformed.x,  bottomLeftTransformed.y,   	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.bottom(),       m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,       slot,         blendingVal,  // Lower left corner
+            topLeftTransformed.x,     topLeftTransformed.y,      	m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.bottom(),       m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,       slot,         blendingVal,  // Upper left corner
+            topRightTransformed.x,    topRightTransformed.y,        m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.top(),          m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,       slot,         blendingVal,  // Upper right corner
+            bottomRightTransformed.x, bottomRightTransformed.y,     m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.top(),          m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,       slot,         blendingVal,  // Lower right corner
         };
 
         for (int i = 0; i < 40; i++) m_verticies[i] = verticies[i];
     } else {
         GLfloat verticies[40] = { 
-            bottomLeftTransformed.x,  bottomLeftTransformed.y,   	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.top(),       m_color->r, m_color->g, m_color->b, m_color->a * *m_alphaModifier,          slot,         blendingVal,  // Lower left corner
-            topLeftTransformed.x,     topLeftTransformed.y,      	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.bottom(),    m_color->r, m_color->g, m_color->b, m_color->a * *m_alphaModifier,          slot,         blendingVal,  // Upper left corner
-            topRightTransformed.x,    topRightTransformed.y,        m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.bottom(),    m_color->r, m_color->g, m_color->b, m_color->a * *m_alphaModifier,          slot,         blendingVal,  // Upper right corner
-            bottomRightTransformed.x, bottomRightTransformed.y,     m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.top(),       m_color->r, m_color->g, m_color->b, m_color->a * *m_alphaModifier,          slot,         blendingVal,  // Lower right corner
+            bottomLeftTransformed.x,  bottomLeftTransformed.y,   	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.top(),       m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,          slot,         blendingVal,  // Lower left corner
+            topLeftTransformed.x,     topLeftTransformed.y,      	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.bottom(),    m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,          slot,         blendingVal,  // Upper left corner
+            topRightTransformed.x,    topRightTransformed.y,        m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.bottom(),    m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,          slot,         blendingVal,  // Upper right corner
+            bottomRightTransformed.x, bottomRightTransformed.y,     m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.top(),       m_color->r, m_color->g, m_color->b, m_color->a * m_alphaModifier,          slot,         blendingVal,  // Lower right corner
         };
 
         for (int i = 0; i < 40; i++) m_verticies[i] = verticies[i];

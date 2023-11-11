@@ -9,14 +9,15 @@ public:
     
     Point m_position;
     float m_rotation;
-    std::shared_ptr<float> m_currAlpha;
+    float m_currAlpha;
 
     std::unique_ptr<GameEffect<AlphaChange>> m_alphaTriggers;
-    
+    std::unique_ptr<GameEffect<PositionChange>> m_positionChanges;
 
-    Group() : m_position(0, 0), m_rotation(0), m_currAlpha(std::make_shared<float>(1.f)) {};
+    std::vector<std::shared_ptr<GameObject>> m_objects;
+
+    Group() : m_position(0, 0), m_rotation(0), m_currAlpha(1.f) {};
 
     void updateAlphaTriggers(float time);
-
-    // TODO: add color trigger stuff
+    void updatePositionChanges(float time);
 };

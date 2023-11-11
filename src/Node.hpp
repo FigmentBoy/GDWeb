@@ -43,23 +43,15 @@ public:
     virtual void onMouseClick(int button, int action, int mods) {};
     virtual void onMouseScroll(double xoffset, double yoffset) {};
 
-    virtual void updateModelMatrix();
-    bool mm_updatedOnce = false;
-    Point mm_prvPosition;
-    float mm_prvRotation;
-    Point mm_prvScale;
-    bool mm_prvFlipX;
-    bool mm_prvFlipY;
-    Point mm_prvAnchorPoint;
-    glm::mat4 mm_prvParentalModelMatrix;
+    virtual void updateModelMatrix(); // ill cache this with a bool later i promise
+
+    bool m_dirtyMatrix = true;
+    bool m_dirtyBoundingBox = true;
 
     virtual void updateUniforms();
 
     virtual Rect getBoundingBox();
-    Rect mb_prvBoundingBox;
-    glm::mat4 mb_prvModelMatrix;
-    Point mb_prvOffset;
-    Size mb_prvSize;
+    Rect m_boundingBox;
 
     virtual void preDraw();
     virtual void postDraw();

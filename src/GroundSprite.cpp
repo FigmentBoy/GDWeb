@@ -48,6 +48,7 @@ void GroundSprite::update(float delta) {
 
     m_position.x = camera->m_position.x - offset;
     m_shineSprite->m_position.x = offset + (camera->m_viewSize.x * camera->m_viewScale.x * 0.5f);
+    m_dirtyMatrix = true;
 
     Node::update(delta);
 }

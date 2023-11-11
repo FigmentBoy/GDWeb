@@ -39,7 +39,6 @@ LevelLayer::LevelLayer(Level* level) : m_level(level) {
     m_speedChanges->setup();
     setupTriggers();
 
-
     registerMouseClickEvent();
     registerMouseScrollEvent();
 }
@@ -65,7 +64,7 @@ void LevelLayer::setupTriggers() {
 
     std::cout << "compiling alpha triggers" << std::endl;
     for (auto& [group, changes] : m_rawAlphaChanges) {
-        m_groups[group]->m_alphaTriggers = std::make_unique<GameEffect<AlphaChange>>(1.0f);
+        m_groups[group]->m_alphaTriggers = std::make_unique<GameEffect<AlphaChange>>(AlphaValue {1.0f});
         for (auto& [position, change] : changes) {
             m_groups[group]->m_alphaTriggers->m_changes.insert({timeForX(position), AlphaChange {change.m_toValue, change.m_fromValue, change.m_duration}});
         }
@@ -91,7 +90,7 @@ void LevelLayer::updateTriggers(float time) {
 
 void LevelLayer::parseLevelString() {
     std::vector<std::string> objects = split(m_level->m_levelString, ";");
-    
+
     std::vector<std::string> innerLevelStringSplit = split(objects[0], ",");
     for (int i = 0; i < innerLevelStringSplit.size(); i += 2) {
         m_levelProperties[innerLevelStringSplit[i]] = innerLevelStringSplit[i + 1];
@@ -128,7 +127,7 @@ void LevelLayer::parseColor(std::string colorString) {
             case (2):
                 baseColor.g = std::stoi(channelSplit[i + 1]) / 255.f;
                 break;
-            case (3): 
+            case (3):
                 baseColor.b = std::stoi(channelSplit[i + 1]) / 255.f;
                 break;
             case (4):
@@ -168,7 +167,7 @@ void LevelLayer::parseColor(std::string colorString) {
 }
 
 float LevelLayer::timeForX(float x) {
-    return m_speedChanges->valueFor(x);
+    return m_speedChanges->valueFor(x).val;
 }
 
 void LevelLayer::parseLevelProperties() {
@@ -195,19 +194,19 @@ void LevelLayer::parseLevelProperties() {
             switch (std::stoi(value)) {
                 default:
                 case 0:
-                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(311.58f);
+                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(SpeedValue {311.58f});
                     break;
                 case 1:
-                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(251.16f);
+                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(SpeedValue {251.16f});
                     break;
                 case 2:
-                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(387.42f);
+                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(SpeedValue {387.42f});
                     break;
                 case 3:
-                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(468.0f);
+                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(SpeedValue {468.0f});
                     break;
                 case 4:
-                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(576.0f);
+                    m_speedChanges = std::make_unique<GameEffect<SpeedChange>>(SpeedValue {576.0f});
                     break;
             }
         } else if (key == "kA6") {
@@ -263,6 +262,7 @@ void LevelLayer::setupObjects() {
         auto gameObj = new GameObject(id, obj, this);
         if (gameObj->m_id == -1) delete gameObj;
         addChild(gameObj);
+        gameObj->addToGroups();
     }
 }
 
@@ -310,14 +310,14 @@ void LevelLayer::update(float delta) {
     float prevX = camera->m_position.x;
 
     if (m_autoScroll) {
-        float speed = m_speedChanges->mostRecent(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * 0.25f).m_toValue;
+        float speed = m_speedChanges->mostRecent(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * 0.25f).m_toValue.val;
         camera->m_position.x += delta * speed;
     }
 
     if (m_mouseDown) {
         if (!m_autoScroll) camera->m_position.x -= (Director::get()->m_mousePosition.x - m_prevMousePos.x) * camera->m_viewScale.x;
         camera->m_position.y -= (Director::get()->m_mousePosition.y - m_prevMousePos.y) * camera->m_viewScale.y;
-    
+
         if (camera->m_position.x < -512) camera->m_position.x = -512;
         if (camera->m_position.y < -128) camera->m_position.y = -128;
     }
@@ -331,7 +331,7 @@ void LevelLayer::update(float delta) {
 
 void LevelLayer::draw() {
     Node::draw();
-    
+
     auto camera = Director::get()->m_camera;
     ImGui::SetNextWindowSize({300, 200});
     ImGui::Begin("Options");

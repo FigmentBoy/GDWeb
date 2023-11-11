@@ -16,7 +16,7 @@ class Sprite : public Node {
 public:
     std::shared_ptr<RGBAColor> m_color; // So we can just update them in the coloractions!
     std::shared_ptr<bool> m_blending;
-    std::shared_ptr<float> m_alphaModifier;
+    float m_alphaModifier = 1.0f;
 
     int m_objectIndex = -1;
     float m_batchZLayer = 0.0f;
@@ -42,10 +42,7 @@ public:
     void update(float delta);
     void draw();
     virtual void updateVertices();
-    glm::mat4 muv_prevModelMatrix;
-    Point muv_prevOffset;
-    Size muv_prevSize;
-    RGBAColor muv_prevColor;
-    bool muv_prevBlending;
-    float muv_prevAlphaModifier;
+    void updateVerticeColors();
+    
+    bool m_dirty = true;
 };

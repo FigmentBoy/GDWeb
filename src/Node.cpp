@@ -9,18 +9,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 void Node::updateModelMatrix() {
-    if (mm_updatedOnce && m_position == mm_prvPosition && m_rotation == mm_prvRotation && 
-        m_scale == mm_prvScale  && m_flipX == mm_prvFlipX && m_flipY == mm_prvFlipY && 
-        m_anchorPoint == mm_prvAnchorPoint && 
-        (!m_parent || m_parent->m_parentalModelMatrix == mm_prvParentalModelMatrix)) return;
-
-    mm_updatedOnce = true;
-    mm_prvPosition = m_position;
-    mm_prvRotation = m_rotation;
-    mm_prvScale = m_scale;
-    mm_prvFlipX = m_flipX;
-    mm_prvFlipY = m_flipY;
-    mm_prvAnchorPoint = m_anchorPoint;
+    if (!m_dirtyMatrix) return;
+    m_dirtyMatrix = false;
+    m_dirtyBoundingBox = true;
 
     glm::mat4 translation = glm::translate(glm::mat4(1), glm::vec3(m_position.x, m_position.y, 0.0f));
     glm::mat4 rotation = glm::rotate(glm::mat4(1), glm::radians(-m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -28,12 +19,16 @@ void Node::updateModelMatrix() {
     glm::mat4 anchor = glm::translate(glm::mat4(1), glm::vec3(-m_anchorPoint.x, -m_anchorPoint.y, 0.0f));
 
     if (m_parent != nullptr) {
-        mm_prvParentalModelMatrix = m_parent->m_parentalModelMatrix;
         m_parentalModelMatrix = m_parent->m_parentalModelMatrix * translation * rotation * scale;
         m_modelMatrix = m_parent->m_parentalModelMatrix * translation * rotation * scale * anchor;
     } else {
         m_parentalModelMatrix = translation * rotation * scale;
         m_modelMatrix = translation * rotation * scale * anchor;
+    }
+
+    for (auto& child : m_children) {
+        child->m_dirtyMatrix = true;
+        child->updateModelMatrix();
     }
 }
 
@@ -45,10 +40,6 @@ void Node::updateUniforms() {
 
 void Node::preDraw() {
     if (!m_visible) return;
-
-    std::sort(m_children.begin(), m_children.end(), [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
-        return a->m_zOrder < b->m_zOrder;
-    });
 
     int i;
     for (i = 0; i < m_children.size(); i++) {
@@ -62,33 +53,30 @@ void Node::preDraw() {
 }
 
 Rect Node::getBoundingBox() {
+    if (!m_dirtyBoundingBox) return m_boundingBox;
+    m_dirtyBoundingBox = false;
     Rect boundingBox;
-
-    if (m_modelMatrix == mb_prvModelMatrix && m_offset == mb_prvOffset && m_size == mb_prvSize) 
-            boundingBox = mb_prvBoundingBox;
     
-    else {
-        Rect viewportRect = Rect(m_offset, m_size);
- 
-        Point bottomLeft = viewportRect.bottomLeft();
-        Point bottomRight = viewportRect.bottomRight();
-        Point topLeft = viewportRect.topLeft();
-        Point topRight = viewportRect.topRight();
+    Rect viewportRect = Rect(m_offset, m_size);
 
-        // There may be a way to do this and use batchers using UBOs but I honestly can't be bothered
-        glm::vec2 bottomLeftTransformed = glm::vec2(m_modelMatrix * glm::vec4(bottomLeft.x, bottomLeft.y, 0.0f, 1.0f));
-        glm::vec2 bottomRightTransformed = glm::vec2(m_modelMatrix * glm::vec4(bottomRight.x, bottomRight.y, 0.0f, 1.0f));
-        glm::vec2 topLeftTransformed = glm::vec2(m_modelMatrix * glm::vec4(topLeft.x, topLeft.y, 0.0f, 1.0f));
-        glm::vec2 topRightTransformed = glm::vec2(m_modelMatrix * glm::vec4(topRight.x, topRight.y, 0.0f, 1.0f));
+    Point bottomLeft = viewportRect.bottomLeft();
+    Point bottomRight = viewportRect.bottomRight();
+    Point topLeft = viewportRect.topLeft();
+    Point topRight = viewportRect.topRight();
 
-        float minX = std::min(std::min(std::min(bottomLeftTransformed.x, bottomRightTransformed.x), topLeftTransformed.x), topRightTransformed.x);
-        float minY = std::min(std::min(std::min(bottomLeftTransformed.y, bottomRightTransformed.y), topLeftTransformed.y), topRightTransformed.y);
-        float maxX = std::max(std::max(std::max(bottomLeftTransformed.x, bottomRightTransformed.x), topLeftTransformed.x), topRightTransformed.x);
-        float maxY = std::max(std::max(std::max(bottomLeftTransformed.y, bottomRightTransformed.y), topLeftTransformed.y), topRightTransformed.y);
+    // There may be a way to do this and use batchers using UBOs but I honestly can't be bothered
+    glm::vec2 bottomLeftTransformed = glm::vec2(m_modelMatrix * glm::vec4(bottomLeft.x, bottomLeft.y, 0.0f, 1.0f));
+    glm::vec2 bottomRightTransformed = glm::vec2(m_modelMatrix * glm::vec4(bottomRight.x, bottomRight.y, 0.0f, 1.0f));
+    glm::vec2 topLeftTransformed = glm::vec2(m_modelMatrix * glm::vec4(topLeft.x, topLeft.y, 0.0f, 1.0f));
+    glm::vec2 topRightTransformed = glm::vec2(m_modelMatrix * glm::vec4(topRight.x, topRight.y, 0.0f, 1.0f));
 
-        boundingBox = Rect({minX, minY}, {maxX - minX, maxY - minY});
-        mb_prvBoundingBox = boundingBox;
-    }
+    float minX = std::min(std::min(std::min(bottomLeftTransformed.x, bottomRightTransformed.x), topLeftTransformed.x), topRightTransformed.x);
+    float minY = std::min(std::min(std::min(bottomLeftTransformed.y, bottomRightTransformed.y), topLeftTransformed.y), topRightTransformed.y);
+    float maxX = std::max(std::max(std::max(bottomLeftTransformed.x, bottomRightTransformed.x), topLeftTransformed.x), topRightTransformed.x);
+    float maxY = std::max(std::max(std::max(bottomLeftTransformed.y, bottomRightTransformed.y), topLeftTransformed.y), topRightTransformed.y);
+
+    boundingBox = Rect({minX, minY}, {maxX - minX, maxY - minY});
+    m_boundingBox = boundingBox;
     
     for (auto& child : m_children) {
         if (child->getBoundingBox().left() < boundingBox.left()) {
@@ -120,10 +108,6 @@ void Node::postDraw() {
 
 void Node::draw() {
     if (!m_visible) return;
-
-    std::sort(m_children.begin(), m_children.end(), [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
-        return a->m_zOrder < b->m_zOrder;
-    });
 
     for (auto& child : m_children) {
         child->draw();
@@ -171,24 +155,23 @@ void Node::update(float delta) {
 }
 
 void Node::addChild(Node* child) {
-    child->removeFromParent();
-    m_children.push_back(std::shared_ptr<Node>(child));
-    child->m_parent = this;
-
-    int delta = child->m_nodeDepth - (m_nodeDepth + 1);
-    child->m_nodeDepth = m_nodeDepth + 1;
-    
-    child->recurseChildren([delta](std::shared_ptr<Node> node) {
-        node->m_nodeDepth += delta;
-        return true;
-    });
+    addChild(std::shared_ptr<Node>(child));
 }
 
 void Node::addChild(std::shared_ptr<Node> child) {
     child->removeFromParent();
-    m_children.push_back(child);
+
+    m_children.insert(
+        std::upper_bound(m_children.begin(), m_children.end(), child, [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
+            return a->m_zOrder < b->m_zOrder;
+        }),
+        child
+    );
+
     child->m_parent = this;
-    
+    child->m_dirtyMatrix = true;
+    child->updateModelMatrix();
+
     int delta = child->m_nodeDepth - (m_nodeDepth + 1);
     child->m_nodeDepth = m_nodeDepth + 1;
     
