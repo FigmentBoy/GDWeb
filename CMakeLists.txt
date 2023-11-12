@@ -16,7 +16,7 @@ file(GLOB SOURCES
 )
 
 if(EMSCRIPTEN)
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         configure_file("${CMAKE_SOURCE_DIR}/dist/WebEditor.html" "${CMAKE_SOURCE_DIR}/build/WebEditor.html" COPYONLY)
     else()
         set(CMAKE_EXECUTABLE_SUFFIX ".html")

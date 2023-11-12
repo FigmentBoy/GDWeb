@@ -84,8 +84,8 @@ void Batcher::draw() {
 
     m_vao->bind();
 
-    m_vbo->createBuffer(numSprites * sizeof(GLfloat) * 10 * 4);
-    m_ebo->createBuffer(numSprites * sizeof(GLuint)  * 6);
+    std::vector<GLfloat> vboData = std::vector<GLfloat>(numSprites * 10 * 4);
+    std::vector<GLuint> eboData = std::vector<GLuint>(numSprites * 6);
 
     static GLuint templateIndices[6] = {
         0, 2, 1, // Upper triangle
@@ -105,13 +105,16 @@ void Batcher::draw() {
                     indicies[j] = templateIndices[j] + (n * 4);
                 }
 
-                m_vbo->setBufferData(n * sizeof(GLfloat) * 10 * 4, sprite->m_verticies, sizeof(GLfloat) * 10 * 4);
-                m_ebo->setBufferData(n * sizeof(GLuint) * 6, indicies, sizeof(GLuint) * 6);
+                memcpy(vboData.data() + (n * 10 * 4), sprite->m_verticies, sizeof(GLfloat) * 10 * 4);
+                memcpy(eboData.data() + (n * 6), indicies, sizeof(GLuint) * 6);
 
                 n++;
             }
         });
     }
+
+    m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 10 * 4);
+    m_ebo->setIndices(eboData.data(), n * sizeof(GLuint)  * 6);
 
     m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 10 * sizeof(GLfloat), (void*)0);
 	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));

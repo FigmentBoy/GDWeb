@@ -109,6 +109,12 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             case 25:
                 m_zOrder = std::stoi(value);
                 break;
+            case 28:
+                properties->movePosition.x = std::stof(value);
+                break;
+            case 29:
+                properties->movePosition.y = std::stof(value);
+                break;
             case 32:
                 m_scale = Point {1, 1} * std::stof(value);
                 break;
@@ -155,6 +161,10 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             if (properties->targetChannel <= 0) break;
             layer->m_rawColorChanges[properties->targetChannel].insert({m_position.x, {{properties->toColor, properties->toColorBlending}, std::max(0.0f, properties->duration)}});
             break;
+        case 901:
+            if (properties->targetGroup <= 0) break;
+            layer->m_rawPositionChanges[properties->targetGroup].insert({m_position.x, {{properties->movePosition}, std::max(0.0f, properties->duration)}});
+            break;
         case 1007:
             if (properties->targetGroup < 0) break;
             layer->m_rawAlphaChanges[properties->targetGroup].insert({m_position.x, {{properties->opacity}, std::max(0.0f, properties->duration)}});
@@ -184,10 +194,17 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
 
     if (gameObjectJson.contains("swap_base_detail") && gameObjectJson["swap_base_detail"].get<bool>()) std::swap(m_colorChannel1, m_colorChannel2);
 
+    if (obj.find("24") == obj.end()) m_zLayer = gameObjectJson["default_z_layer"].get<int>();
+    if (obj.find("25") == obj.end()) m_zOrder = gameObjectJson["default_z_order"].get<int>();
+
     std::string texture = gameObjectJson["texture"];
 
-    std::shared_ptr<Sprite> sprite = std::make_shared<Sprite>(SpriteFrameCache::get()->getSpriteFrameByName(texture));
+    auto frame = SpriteFrameCache::get()->getSpriteFrameByName(texture);
+    if (!frame) return;
+    
+    std::shared_ptr<Sprite> sprite = std::make_shared<Sprite>(frame);
     addChild(sprite);
+    m_sprites.push_back(sprite);
 
     if (layer) {
         m_layer = layer;
@@ -207,10 +224,6 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     }
 
     sprite->updateModelMatrix();
-
-    if (obj.find("24") == obj.end()) m_zLayer = gameObjectJson["default_z_layer"].get<int>();
-
-    if (obj.find("25") == obj.end()) m_zOrder = gameObjectJson["default_z_order"].get<int>();
 
     sprite->m_batchZLayer = m_zLayer;
     sprite->m_objectIndex = m_index;
@@ -233,7 +246,10 @@ void GameObject::addToGroups() {
 
 void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     std::string texture = child["texture"];   
-    std::shared_ptr<Sprite> sprite = std::make_shared<Sprite>(SpriteFrameCache::get()->getSpriteFrameByName(texture));
+    auto frame = SpriteFrameCache::get()->getSpriteFrameByName(texture);
+    if (!frame) return;
+
+    std::shared_ptr<Sprite> sprite = std::make_shared<Sprite>(frame);
     
     Point deltaAnchor = {sprite->m_size.width * child["anchor_x"].get<float>() * (child["flip_x"].get<bool>() ? -1.f : 1.f), sprite->m_size.height * child["anchor_y"].get<float>() * (child["flip_y"].get<bool>() ? -1.f : 1.f)};
     if (sprite->m_spriteFrame->m_rotated) {
@@ -266,6 +282,7 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     
     parent->addChild(sprite);
     sprite->updateModelMatrix();
+    m_sprites.push_back(sprite);
 
     sprite->m_batchZLayer = m_zLayer;
     sprite->m_objectIndex = m_index;
@@ -278,8 +295,6 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
 }
 
 void GameObject::update(float delta) {
-    Node::update(delta);
-
     if (m_dirtyAlpha) {
         m_dirtyAlpha = false;
         float alpha = 1.0f;
@@ -288,30 +303,23 @@ void GameObject::update(float delta) {
             alpha *= group->m_currAlpha;
         }
 
-        recurseChildren([alpha](std::shared_ptr<Node> node) {
-            if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
-                sprite->m_alphaModifier = alpha;
-                sprite->updateVerticeColors();
-            }
-            return true;
-        });
+        for (auto sprite : m_sprites) {
+            sprite->m_alphaModifier = alpha;
+            sprite->m_dirtyColor = true;
+        }
     }
 
     if (m_dirtyPosition) {
         m_dirtyPosition = false;
-        Point position = {0, 0};
+        Point delta = {0, 0};
 
         for (auto group : m_groups) {
-            position += group->m_position;
+            delta += group->m_position;
         }
 
-        m_position = m_originalPosition + m_position;
-        
-        recurseChildren([](std::shared_ptr<Node> node) {
-            if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
-                sprite->updateVertices();
-            }
-            return true;
-        });
+        m_position = m_originalPosition + delta;
+        m_dirtyMatrix = true;
     }
+
+    Node::update(delta);
 }

@@ -17,9 +17,11 @@ BackgroundSprite::BackgroundSprite(int index, LevelLayer* layer) {
 void BackgroundSprite::update(float delta) {
     auto camera = Director::get()->m_camera;
 
-    m_position = {camera->m_position.x, camera->m_position.y};
-    m_sprite->m_lockedHeight = camera->m_viewSize.y * camera->m_viewScale.y;
-    m_dirtyMatrix = true;
+    if (m_position.x != camera->m_position.x || m_position.y != camera->m_position.y) {
+        m_position = {camera->m_position.x, camera->m_position.y};
+        m_sprite->m_lockedHeight = camera->m_viewSize.y * camera->m_viewScale.y;
+        m_dirtyMatrix = true;
+    }
 
     Node::update(delta);
 }

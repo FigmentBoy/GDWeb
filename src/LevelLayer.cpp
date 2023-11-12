@@ -76,6 +76,21 @@ void LevelLayer::setupTriggers() {
     for (auto& group : m_groups) {
         group->updateAlphaTriggers(currTime);
     }
+
+    std::cout << "compiling move triggers" << std::endl;
+    for (auto& [group, changes] : m_rawPositionChanges) {
+        m_groups[group]->m_positionChanges = std::make_unique<GameEffect<PositionChange>>(PositionValue {{0, 0}});
+        for (auto& [position, change] : changes) {
+            m_groups[group]->m_positionChanges->m_changes.insert({timeForX(position), PositionChange {change.m_toValue, change.m_fromValue, change.m_duration}});
+        }
+        m_groups[group]->m_positionChanges->setup();
+        m_groupsWithPositionChanges.push_back(group);
+    }
+    m_rawPositionChanges.clear();
+
+    for (auto& group : m_groups) {
+        group->updatePositionChanges(currTime);
+    }
 }
 
 void LevelLayer::updateTriggers(float time) {
@@ -85,6 +100,10 @@ void LevelLayer::updateTriggers(float time) {
 
     for (auto& group : m_groupsWithAlphaChanges) {
         m_groups[group]->updateAlphaTriggers(time);
+    }
+
+    for (auto& group : m_groupsWithPositionChanges) {
+        m_groups[group]->updatePositionChanges(time);
     }
 }
 

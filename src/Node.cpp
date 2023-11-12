@@ -11,6 +11,7 @@
 void Node::updateModelMatrix() {
     if (!m_dirtyMatrix) return;
     m_dirtyMatrix = false;
+
     m_dirtyBoundingBox = true;
 
     glm::mat4 translation = glm::translate(glm::mat4(1), glm::vec3(m_position.x, m_position.y, 0.0f));
@@ -55,6 +56,7 @@ void Node::preDraw() {
 Rect Node::getBoundingBox() {
     if (!m_dirtyBoundingBox) return m_boundingBox;
     m_dirtyBoundingBox = false;
+    
     Rect boundingBox;
     
     Rect viewportRect = Rect(m_offset, m_size);
@@ -130,10 +132,6 @@ void Node::recurseChildren(std::function<bool(std::shared_ptr<Node>)> func) {
 }
 
 void Node::recurseChildrenWithDepth(std::function<void(std::shared_ptr<Node>)> func) {
-    std::sort(m_children.begin(), m_children.end(), [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
-        return a->m_zOrder < b->m_zOrder;
-    });
-
     int i;
     for (i = 0; i < m_children.size(); i++) {
         if (m_children[i]->m_zOrder >= 0) break;

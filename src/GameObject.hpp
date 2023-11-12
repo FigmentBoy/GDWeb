@@ -20,6 +20,8 @@ struct GameObjectProperties {
     bool toColorBlending = false;
     std::vector<int> m_groupIDs;
 
+    Point movePosition = {0, 0};
+
     int copyChannelID = 0;
 };
 
@@ -44,6 +46,7 @@ public:
     Point m_originalPosition;
 
     std::vector<std::shared_ptr<Group>> m_groups;
+    std::vector<std::shared_ptr<Sprite>> m_sprites;
 
     GameObject(int id, std::map<std::string, std::string> const& obj = {}, LevelLayer* layer = nullptr);
 

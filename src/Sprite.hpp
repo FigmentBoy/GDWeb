@@ -45,4 +45,5 @@ public:
     void updateVerticeColors();
     
     bool m_dirty = true;
+    bool m_dirtyColor = false;
 };

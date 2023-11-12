@@ -19,8 +19,8 @@ void ColorChannel::updateColor(float time) {
             channel->parentUpdated(hsvaState);
         }
 
-        for (auto& object : m_sprites) {
-            object->updateVerticeColors();
+        for (auto& sprite : m_sprites) {
+            sprite->m_dirtyColor = true;
         }
     }
 }
@@ -47,8 +47,8 @@ void ColorChannel::parentUpdated(HSVAColor parentColor) {
 
         *m_currColor = lbg;
 
-        for (auto& object : m_sprites) {
-            object->updateVerticeColors();
+        for (auto& sprite : m_sprites) {
+            sprite->m_dirtyColor = true;
         }
 
         return;
@@ -59,7 +59,7 @@ void ColorChannel::parentUpdated(HSVAColor parentColor) {
     newColor.v += m_inheritedDelta.v;
     *m_currColor = newColor.toRGBA();
 
-    for (auto& object : m_sprites) {
-        object->updateVerticeColors();
+    for (auto& sprite : m_sprites) {
+        sprite->m_dirtyColor = true;
     }
 }

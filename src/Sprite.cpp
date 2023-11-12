@@ -41,13 +41,10 @@ Sprite::Sprite(std::shared_ptr<SpriteFrame> spriteFrame, RGBAColor color) {
 }
 
 void Sprite::update(float delta) {
-    if (m_parent != nullptr) {
-        if (Sprite* m_parentSprite = dynamic_cast<Sprite*>(m_parent)) m_alphaModifier = m_parentSprite->m_alphaModifier;
-    }
-
     Node::update(delta);
-    
+
     updateVertices();
+    updateVerticeColors();
 }
 
 void Sprite::draw() {
@@ -78,6 +75,9 @@ void Sprite::removeFromBatcher() {
 }
 
 void Sprite::updateVerticeColors() {
+    if (!m_dirtyColor) return;
+    m_dirtyColor = false;
+
     float blendingVal = *m_blending ? 1.0f : 0.0f;
 
     GLfloat verticies[40] = { 
@@ -93,6 +93,7 @@ void Sprite::updateVerticeColors() {
 void Sprite::updateVertices() {
     if (!m_dirty) return;
     m_dirty = false;
+    m_dirtyColor = false;
 
     Rect viewportRect = Rect(m_offset, m_size);
  

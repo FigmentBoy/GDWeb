@@ -43,12 +43,13 @@ GroundSprite::GroundSprite(int index, LevelLayer* layer) {
 
 void GroundSprite::update(float delta) {
     auto camera = Director::get()->m_camera;
-
     float offset = fmod(camera->m_position.x + 512, 128);
 
-    m_position.x = camera->m_position.x - offset;
-    m_shineSprite->m_position.x = offset + (camera->m_viewSize.x * camera->m_viewScale.x * 0.5f);
-    m_dirtyMatrix = true;
+    if (m_position.x != camera->m_position.x - offset) {
+        m_position.x = camera->m_position.x - offset;
+        m_shineSprite->m_position.x = offset + (camera->m_viewSize.x * camera->m_viewScale.x * 0.5f);
+        m_dirtyMatrix = true;
+    }
 
     Node::update(delta);
 }
