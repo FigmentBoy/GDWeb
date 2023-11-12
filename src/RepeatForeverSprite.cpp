@@ -4,6 +4,10 @@
 #include <iostream>
 
 void RepeatForeverSprite::updateVertices() {
+    if (!m_dirty) return;
+    m_dirty = false;
+    m_dirtyColor = false;
+
     Point offset = {m_spriteFrame->m_offset.x, m_spriteFrame->m_offset.y};
 
     Rect viewportRect = Rect(offset, m_size);
@@ -20,7 +24,7 @@ void RepeatForeverSprite::updateVertices() {
     auto camera = Director::get()->m_camera;
 
     float width = (camera->m_position.x + (camera->m_viewSize.x * camera->m_viewScale.x)) - bottomLeftTransformed.x;
-    GLfloat times = std::ceil(width / unitWidth);
+    GLfloat times = std::ceil(width / unitWidth) + 1;
 
     float deltaWidth = unitWidth * times;
 

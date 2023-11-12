@@ -17,6 +17,8 @@ public:
     
     std::vector<std::shared_ptr<Texture>> m_textures;
 
+    int prevMaxRendered = 0;
+
     std::unique_ptr<VAO> m_vao;
     std::unique_ptr<VBO> m_vbo;
     std::unique_ptr<EBO> m_ebo;

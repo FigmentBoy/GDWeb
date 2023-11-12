@@ -12,6 +12,8 @@ GroundSprite::GroundSprite(int index, LevelLayer* layer) {
         sprite->m_zOrder = 0.0f;
         addChild(sprite);
 
+        m_sprites.push_back(sprite);
+
         sprite->m_color = layer->m_colorChannels[1001]->m_currColor;
     } else {
         std::string baseName = (std::string) "groundSquare_" + (index < 10 ? "0" : "") + std::to_string(index) + "_001.png";
@@ -27,6 +29,9 @@ GroundSprite::GroundSprite(int index, LevelLayer* layer) {
         topSprite->m_position = {0.f, -topFrame->m_size.height};
         topSprite->m_zOrder = 1.0f;
         addChild(topSprite);
+
+        m_sprites.push_back(baseSprite);
+        m_sprites.push_back(topSprite);
 
         baseSprite->m_color = layer->m_colorChannels[1001]->m_currColor;
         topSprite->m_color = layer->m_colorChannels[1001]->m_currColor;
@@ -45,10 +50,23 @@ void GroundSprite::update(float delta) {
     auto camera = Director::get()->m_camera;
     float offset = fmod(camera->m_position.x + 512, 128);
 
-    if (m_position.x != camera->m_position.x - offset) {
-        m_position.x = camera->m_position.x - offset;
-        m_shineSprite->m_position.x = offset + (camera->m_viewSize.x * camera->m_viewScale.x * 0.5f);
+    float oldX = m_position.x;
+    m_position.x = camera->m_position.x - offset;
+    
+    if (oldX != m_position.x) {
         m_dirtyMatrix = true;
+
+        for (auto sprite : m_sprites) {
+            sprite->m_dirty = true;
+        }
+    }
+
+    float oldShineX = m_shineSprite->m_position.x;
+    m_shineSprite->m_position.x = offset + (camera->m_viewSize.x * camera->m_viewScale.x * 0.5f);
+
+    if (oldShineX != m_shineSprite->m_position.x) {
+        m_shineSprite->m_dirtyMatrix = true;
+        m_shineSprite->m_dirty = true;
     }
 
     Node::update(delta);

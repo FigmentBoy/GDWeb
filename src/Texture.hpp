@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 #include "Geometry.hpp"
 
-#include <tuple>
+#include <unordered_map>
 
 class LoadingLayer;
 
@@ -21,6 +21,10 @@ public:
     ~Texture() { release(); }
 
     void setUniforms();
+
+    inline static GLuint currentSlot = -1;
+    inline static GLuint current = -1;
+    inline static std::unordered_map<GLuint, GLuint> currentMap;
 
     void bind();
     void unbind();

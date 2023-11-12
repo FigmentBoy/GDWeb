@@ -25,7 +25,6 @@ public:
     };
 };
 
-
 struct ColorChannelValue : public RGBAColor {
     bool m_blending;
 };

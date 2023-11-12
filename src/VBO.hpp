@@ -14,6 +14,7 @@ public:
 
     void setVertices(GLfloat* vertices, GLsizeiptr size);
 
+    inline static GLuint current = -1;
     void bind();
     void unbind();
     void release();

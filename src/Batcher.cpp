@@ -14,6 +14,12 @@ Batcher::Batcher() {
     
     m_vbo = std::make_unique<VBO>();
     m_ebo = std::make_unique<EBO>();
+
+    m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 10 * sizeof(GLfloat), (void*)0);
+	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 2, 4, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(8 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(9 * sizeof(GLfloat)));
 }
 
 void Batcher::addBatchSprite(std::shared_ptr<Sprite> sprite) {
@@ -72,16 +78,6 @@ void Batcher::draw() {
 
     if (spritesToDraw.size() == 0) return; // No sprites to draw
 
-    std::sort(spritesToDraw.begin(), spritesToDraw.end(), [](std::shared_ptr<Sprite> a, std::shared_ptr<Sprite> b) {
-        if (a->m_batchZLayer == b->m_batchZLayer) {
-            if (a->m_zOrder == b->m_zOrder) {
-                return a->m_objectIndex < b->m_objectIndex;
-            }
-            return a->m_zOrder < b->m_zOrder;
-        };
-        return a->m_batchZLayer < b->m_batchZLayer;
-    });
-
     m_vao->bind();
 
     std::vector<GLfloat> vboData = std::vector<GLfloat>(numSprites * 10 * 4);
@@ -113,14 +109,14 @@ void Batcher::draw() {
         });
     }
 
-    m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 10 * 4);
-    m_ebo->setIndices(eboData.data(), n * sizeof(GLuint)  * 6);
-
-    m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 10 * sizeof(GLfloat), (void*)0);
-	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 2, 4, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(8 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(9 * sizeof(GLfloat)));
+    if (n > prevMaxRendered) {
+        m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 10 * 4);
+        m_ebo->setIndices(eboData.data(), n * sizeof(GLuint)  * 6);
+        prevMaxRendered = n;
+    } else {
+        m_vbo->setBufferData(0, vboData.data(), n * sizeof(GLfloat) * 10 * 4);
+        m_ebo->setBufferData(0, eboData.data(), n * sizeof(GLuint)  * 6);
+    }
 
     for (auto texture : m_textures) {
         texture->setUniforms();

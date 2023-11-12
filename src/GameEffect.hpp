@@ -4,7 +4,6 @@
 #include <iostream>
 #include "utils.hpp"
 
-
 #define $CreateTypeChanger(type, name)                                          \
     using name##ChangeBase = BaseTypeChanger<type>;                             \
     using name##Change = TypeChanger<type>;                                     \
@@ -179,13 +178,13 @@ public:
                     lastCommittedValue = activeChanger.finalValue(lastCommittedValue);
                     activeChangers.erase(activePosition);
                 } else {
-                    change.m_changes[activePosition - position] = activeChanger;
+                    change.m_changes.insert({activePosition - position, activeChanger});
                     change.m_cacheAfter = std::max(change.m_cacheAfter, activeChanger.m_duration - (activePosition - position));
                 }
             }
             
             change.m_fromValue = lastCommittedValue;
-            activeChangers[position] = change;
+            activeChangers.insert({position, change});
         }
     }
 };

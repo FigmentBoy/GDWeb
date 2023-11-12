@@ -8,11 +8,11 @@
 #include <map>
 #include <vector>
 
-#define SECTION_WIDTH 300
+#define SECTION_WIDTH 100
 
 class SectionBatcher : public Batcher {
 public:
-    std::map<int, std::vector<std::shared_ptr<Sprite>>> m_sections;
+    std::map<int, std::map<float, std::map<float, std::vector<std::shared_ptr<Sprite>>>>> m_sections; // shush
 
     SectionBatcher() : Batcher() {};
 

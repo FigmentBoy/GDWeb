@@ -7,6 +7,7 @@ public:
     GLuint m_id;
     Shader(const char* vertexFile, const char* fragmentFile);
 
+    inline static GLuint current = -1;
     void activate();
     void deactivate();
     

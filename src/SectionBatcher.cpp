@@ -9,10 +9,9 @@ void SectionBatcher::addBatchSprite(std::shared_ptr<Sprite> sprite) {
     }
 
     int section = sprite->getBoundingBox().left() / SECTION_WIDTH;
-    m_sections[section].push_back(sprite);
-    
-    m_sorted = false;
 
+    m_sections[section][sprite->m_batchZLayer][sprite->m_zOrder].push_back(sprite);
+    
     recurseAdd(sprite);
 }
 
@@ -21,11 +20,13 @@ void SectionBatcher::removeBatchSprite(std::shared_ptr<Sprite> sprite) {
     
     sprite->m_currentBatcher = nullptr;
 
-    for (auto section : m_sections) {
-        section.second.erase(std::remove(section.second.begin(), section.second.end(), sprite), section.second.end());
+    for (auto& [position, zOrderMap] : m_sections) {
+        for (auto& [zOrder, zLayerMap] : zOrderMap) {
+            for (auto& [zLayer, sprites] : zLayerMap) {
+                sprites.erase(std::remove(sprites.begin(), sprites.end(), sprite), sprites.end());
+            }
+        }
     }
-
-    m_sprites.erase(std::remove(m_sprites.begin(), m_sprites.end(), sprite), m_sprites.end());
 
     for (auto child : sprite->m_children) {
         if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(child)) {
@@ -40,9 +41,18 @@ void SectionBatcher::draw() {
     float maxX = cameraRect.right() + SECTION_WIDTH;
 
     m_sprites.clear();
-    for (auto& section : m_sections) {
-        if (section.first * SECTION_WIDTH > minX && section.first * SECTION_WIDTH < maxX) {
-            m_sprites.insert(m_sprites.end(), section.second.begin(), section.second.end());
+    
+    auto first = m_sections.lower_bound(minX / SECTION_WIDTH);
+    auto last = m_sections.upper_bound(maxX / SECTION_WIDTH);
+
+    std::vector<int> indicies;
+    
+    for (auto it = first; it != last; it++) {
+        auto zOrderMap = it->second;
+        for (auto& [zOrder, zLayerMap] : zOrderMap) {
+            for (auto& [zLayer, sprites] : zLayerMap) {
+                m_sprites.insert(m_sprites.end(), sprites.begin(), sprites.end());
+            }
         }
     }
 

@@ -65,17 +65,28 @@ Texture::Texture(const char* image, GLenum texType, GLenum slot, GLenum format, 
 }
 
 void Texture::setUniforms() {
-    glActiveTexture(m_slot);
+    if (currentSlot != m_slot) {
+        glActiveTexture(m_slot);
+        currentSlot = m_slot;
+    }
+
+    if (currentMap[m_slot] == m_id) return;
     glUniform1i(glGetUniformLocation(Director::get()->m_shader->m_id, ("textures[" + std::to_string(m_slot - GL_TEXTURE0) + "]").c_str()), m_slot - GL_TEXTURE0);
+    currentMap[m_slot] = m_id;
 }
 
 void Texture::bind() {
-    glActiveTexture(m_slot);
+    if (currentSlot != m_slot) {
+        glActiveTexture(m_slot);
+        currentSlot = m_slot;
+    }
+    
+    if (current == m_id) return;
     glBindTexture(m_type, m_id);
+    current = m_id;
 }
 
 void Texture::unbind() {
-    glBindTexture(m_type, 0);
 }
 
 void Texture::release() {

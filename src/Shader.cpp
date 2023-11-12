@@ -82,11 +82,12 @@ Shader::Shader(const char* vertexFile, const char* fragmentFile) {
 }
 
 void Shader::activate() {
+    if (current == m_id) return;
     glUseProgram(m_id);
+    current = m_id;
 }
 
 void Shader::deactivate() {
-    glUseProgram(0);
 }
 
 void Shader::release() {

@@ -8,7 +8,7 @@ int main() {
     Director::get()->init();
 
     #ifdef EMSCRIPTEN
-    emscripten_set_main_loop([](){Director::get()->mainLoop();}, 0, 0);
+    emscripten_set_main_loop([](){Director::get()->mainLoop();}, 0, 1);
     #else
     while (!glfwWindowShouldClose(Director::get()->m_window)) {
         Director::get()->mainLoop();

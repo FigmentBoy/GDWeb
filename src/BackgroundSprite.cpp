@@ -21,6 +21,8 @@ void BackgroundSprite::update(float delta) {
         m_position = {camera->m_position.x, camera->m_position.y};
         m_sprite->m_lockedHeight = camera->m_viewSize.y * camera->m_viewScale.y;
         m_dirtyMatrix = true;
+        
+        m_sprite->m_dirty = true;
     }
 
     Node::update(delta);

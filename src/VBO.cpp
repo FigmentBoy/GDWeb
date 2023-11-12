@@ -6,26 +6,27 @@ VBO::VBO() {
 }
 
 void VBO::createBuffer(GLsizeiptr size) {
-    glBindBuffer(GL_ARRAY_BUFFER, m_id);
-    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STREAM_DRAW);
+    bind();
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
 }
 
 void VBO::setBufferData(GLintptr offset, GLvoid* data, GLsizeiptr size) {
-    glBindBuffer(GL_ARRAY_BUFFER, m_id);
+    bind();
     glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
 }
 
 void VBO::setVertices(GLfloat* vertices, GLsizeiptr size) {
-    glBindBuffer(GL_ARRAY_BUFFER, m_id);
-    glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STREAM_DRAW);
+    bind();
+    glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_DYNAMIC_DRAW);
 }
 
 void VBO::bind() {
+    if (current == m_id) return;
     glBindBuffer(GL_ARRAY_BUFFER, m_id);
+    current = m_id;
 }
 
 void VBO::unbind() {
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void VBO::release() {

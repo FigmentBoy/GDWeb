@@ -91,15 +91,12 @@ bool Director::init() {
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);
 
-    #ifdef EMSCRIPTEN
-    ImGui_ImplOpenGL3_Init("#version 300 es");
+    ImGui_ImplOpenGL3_Init();
     auto gui = GUI::get(); (void) gui;
 
+    #ifdef EMSCRIPTEN
     m_defaultShader = std::make_shared<Shader>("static/shaders/defaultES.vert", "static/shaders/defaultES.frag");
     #else
-    ImGui_ImplOpenGL3_Init("#version 330");
-    auto gui = GUI::get(); (void) gui;
-
     m_defaultShader = std::make_shared<Shader>("static/shaders/default.vert", "static/shaders/default.frag");
     #endif
     
@@ -141,6 +138,8 @@ void Director::mainLoop() {
     #endif 
 
     m_camera->m_viewSize = {width, height};
+    
+    glfwSetWindowSize(m_window, width, height);
     glViewport(0, 0, width, height);
 
     #ifdef EMSCRIPTEN
