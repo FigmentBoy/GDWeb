@@ -1,33 +1,56 @@
 #include "ColorChannel.hpp"
 
+void ColorChannel::updateTextureColor() {
+    GLubyte data[4] = {
+        static_cast<GLubyte>(m_currColor.r * 255), 
+        static_cast<GLubyte>(m_currColor.g * 255), 
+        static_cast<GLubyte>(m_currColor.b * 255), 
+        static_cast<GLubyte>(m_currColor.a * 255),
+    };
+    m_colorTexture->setSubData(
+        data, 
+        {1, 1}, {0, m_index}, GL_UNSIGNED_BYTE
+    );
+}
+
+void ColorChannel::updateTextureBlending() {
+    GLubyte data[4] = {
+        static_cast<GLubyte>(m_blending ? 255 : 0),
+        0,
+        0,
+        0
+    };
+    m_colorTexture->setSubData(
+        data, 
+        {1, 1}, {1, m_index}, GL_UNSIGNED_BYTE
+    );
+}
+
 void ColorChannel::updateColor(float time) {
     if (!m_colorTriggers) {
         return;
     }
 
-    RGBAColor oldColor = *m_currColor;
+    RGBAColor oldColor = m_currColor;
     ColorChannelValue res = m_colorTriggers->valueFor(time);
     
-    setBlending(res.m_blending);
+    auto oldBlending = m_blending;
+    m_blending = res.m_blending;
+    if (oldBlending != m_blending) updateTextureBlending();
 
     RGBAColor state = (RGBAColor) res;
     if (oldColor != state) {
-        *m_currColor = state;
+        m_currColor = state;
+        updateTextureColor();
 
         HSVAColor hsvaState = state.toHSVA();
         for (auto& channel : m_childChannels) {
             channel->parentUpdated(hsvaState);
         }
-
-        for (auto& sprite : m_sprites) {
-            sprite->m_dirtyColor = true;
-        }
     }
 }
 
-void ColorChannel::setBlending(bool blending) {
-    *m_blending = blending;
-}
+
 
 void ColorChannel::parentUpdated(HSVAColor parentColor) {
     HSVAColor newColor = parentColor;
@@ -45,11 +68,8 @@ void ColorChannel::parentUpdated(HSVAColor parentColor) {
             lbg.b = lbg.b * f + m_p1Color.b * (1 - f);
         }
 
-        *m_currColor = lbg;
-
-        for (auto& sprite : m_sprites) {
-            sprite->m_dirtyColor = true;
-        }
+        m_currColor = lbg;
+        updateTextureColor();
 
         return;
     }
@@ -57,9 +77,7 @@ void ColorChannel::parentUpdated(HSVAColor parentColor) {
     newColor.h += m_inheritedDelta.h;
     newColor.s += m_inheritedDelta.s;
     newColor.v += m_inheritedDelta.v;
-    *m_currColor = newColor.toRGBA();
+    m_currColor = newColor.toRGBA();
 
-    for (auto& sprite : m_sprites) {
-        sprite->m_dirtyColor = true;
-    }
+    updateTextureColor();
 }

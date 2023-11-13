@@ -4,6 +4,8 @@
 #include "Geometry.hpp"
 #include "Node.hpp"
 
+#define VIEW_RATIO 0.25f
+
 class Camera {
 public:
     glm::vec2 m_position;

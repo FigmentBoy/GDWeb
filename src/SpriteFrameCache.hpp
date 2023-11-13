@@ -7,9 +7,7 @@
 #include "LoadingLayer.hpp"
 
 class SpriteFrameCache {
-public:
-    inline static GLenum m_spriteSlot = GL_TEXTURE0;
-    
+public:    
     std::unordered_map<std::string, std::shared_ptr<SpriteFrame>> m_spriteFrames;
 
     static SpriteFrameCache* get() {

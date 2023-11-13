@@ -1,23 +1,26 @@
-#version 330
+#version 300 es
+precision highp float;
 
 in vec3 vertPosition;
 in vec2 aTex;
-in vec4 aColor;
+in float aColor;
+in float aGroupGroup;
 in float aTexIndex;
-in float aBlending;
 
 out vec2 texCoord;
-out vec4 color;
+out float color;
+out float groupGroup;
 out float texIndex;
-out float blending;
 
 uniform mat4 ProjectionMatrix;
+
+uniform sampler2D groupGroupTexture;
 
 void main() {
     texCoord = aTex;
     color = aColor;
+    groupGroup = aGroupGroup;
     texIndex = aTexIndex;
-    blending = aBlending;
 
     gl_Position = ProjectionMatrix * vec4(vertPosition, 1.0);
 }

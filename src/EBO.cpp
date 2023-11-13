@@ -7,7 +7,7 @@ EBO::EBO() {
 
 void EBO::createBuffer(GLsizeiptr size) {
     bind();
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, NULL, GL_STATIC_DRAW);
 }
 
 void EBO::setBufferData(GLintptr offset, GLvoid* data, GLsizeiptr size) {
@@ -17,7 +17,7 @@ void EBO::setBufferData(GLintptr offset, GLvoid* data, GLsizeiptr size) {
 
 void EBO::setIndices(GLuint* indicies, GLsizeiptr size) {
     bind();
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indicies, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indicies, GL_STATIC_DRAW);
 }
 
 void EBO::bind() {

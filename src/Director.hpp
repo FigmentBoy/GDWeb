@@ -23,9 +23,6 @@ public:
     std::shared_ptr<Camera> m_camera;
     
     float m_prevFrameTime;
-    float m_prevFPSTime;
-    int m_framesSince;
-    float m_fpsValue;
 
     Point m_mousePosition;
 

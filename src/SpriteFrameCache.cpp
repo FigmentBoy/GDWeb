@@ -38,18 +38,18 @@ void SpriteFrameCache::loadSpriteFramesFromPlist(std::string path, LoadingLayer*
     std::shared_ptr<Texture> texture;
     if (loadingLayer) {
         Texture::getImageData((path + "-uhd.png").c_str(), loadingLayer);
-        loadingLayer->m_spriteSlot = m_spriteSlot;
+        loadingLayer->m_spriteSlot = Texture::m_nextSlot;
         loadingLayer->m_hasNewImage = true;
         while (loadingLayer->m_hasNewImage) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         };
         texture = std::shared_ptr<Texture>(loadingLayer->m_texture);
     } else {
-        texture = std::make_shared<Texture>((path + "-uhd.png").c_str(), GL_TEXTURE_2D, m_spriteSlot, GL_RGBA, GL_UNSIGNED_BYTE);
+        texture = std::make_shared<Texture>((path + "-uhd.png").c_str(), GL_TEXTURE_2D, Texture::m_nextSlot, GL_RGBA, GL_UNSIGNED_BYTE);
     }
 
     std::cout << texture->m_id << std::endl;
-    std::cout << texture->m_slot << " SUPPOSED TO BE " << m_spriteSlot << std::endl;
+    std::cout << texture->m_slot << " SUPPOSED TO BE " << Texture::m_nextSlot << std::endl;
 
     std::map<std::string, boost::any> dict;
     Plist::readPlist((path + "-uhd.plist").c_str(), dict);
@@ -111,7 +111,7 @@ void SpriteFrameCache::loadSpriteFramesFromPlist(std::string path, LoadingLayer*
         m_spriteFrames[frameName] = spriteFrame;
     }
     std::cout << "Added " + std::to_string(frames.size()) + " sprites from " + path << std::endl;
-    m_spriteSlot++;
+    Texture::m_nextSlot++;
 }
 
 std::shared_ptr<SpriteFrame> SpriteFrameCache::getSpriteFrameByName(std::string name) {

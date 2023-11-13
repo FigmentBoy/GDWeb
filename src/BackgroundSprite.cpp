@@ -11,7 +11,7 @@ BackgroundSprite::BackgroundSprite(int index, LevelLayer* layer) {
     m_sprite->m_position = {0, 0};
     addChild(m_sprite);
 
-    m_sprite->m_color = layer->m_colorChannels[1000]->m_currColor;
+    m_sprite->m_colorChannel = 1000;
 }
 
 void BackgroundSprite::update(float delta) {
@@ -20,8 +20,8 @@ void BackgroundSprite::update(float delta) {
     if (m_position.x != camera->m_position.x || m_position.y != camera->m_position.y) {
         m_position = {camera->m_position.x, camera->m_position.y};
         m_sprite->m_lockedHeight = camera->m_viewSize.y * camera->m_viewScale.y;
+
         m_dirtyMatrix = true;
-        
         m_sprite->m_dirty = true;
     }
 

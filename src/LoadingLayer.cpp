@@ -100,7 +100,7 @@ void LoadingLayer::update(float delta) {
 
     if (m_doneLoading) {
         printf("Switching scenes...\n");
-        Director::get()->swapRootNode(new LevelLayer(Level::fromGMD("static/Sonic Wave.gmd")));
+        Director::get()->swapRootNode(new LevelLayer(Level::fromGMD("static/Acu.gmd")));
         // Director::get()->swapRootNode(new TestLayer());
     }
 }

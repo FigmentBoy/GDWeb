@@ -7,7 +7,7 @@ VBO::VBO() {
 
 void VBO::createBuffer(GLsizeiptr size) {
     bind();
-    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_DRAW);
 }
 
 void VBO::setBufferData(GLintptr offset, GLvoid* data, GLsizeiptr size) {
@@ -17,7 +17,7 @@ void VBO::setBufferData(GLintptr offset, GLvoid* data, GLsizeiptr size) {
 
 void VBO::setVertices(GLfloat* vertices, GLsizeiptr size) {
     bind();
-    glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
 }
 
 void VBO::bind() {

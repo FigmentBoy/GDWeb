@@ -25,7 +25,7 @@ LevelLayer::LevelLayer(Level* level) : m_level(level) {
     backgroundSprite->m_zOrder = -1.0f;
     addChild(backgroundSprite);
 
-    m_levelBatcher = std::make_shared<SectionBatcher>();
+    m_levelBatcher = std::make_shared<Batcher>();
     m_levelBatcher->m_zOrder = 0.0f;
     addChild(m_levelBatcher);
 
@@ -34,6 +34,12 @@ LevelLayer::LevelLayer(Level* level) : m_level(level) {
     addChild(groundSprite);
 
     setupObjects();
+
+    auto groupGroupTexture = std::make_shared<Texture>(2, GroupGroup::m_groupGroups.size(), GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA, GL_UNSIGNED_BYTE);
+    for (auto& groupGroup : GroupGroup::m_groupGroups) {
+        groupGroup->m_groupTexture = groupGroupTexture;
+    }
+    groupGroupTexture->setUniforms("groupGroupTexture");
 
     std::cout << "Setting up speed changes" << std::endl;
     m_speedChanges->setup();
@@ -45,11 +51,11 @@ LevelLayer::LevelLayer(Level* level) : m_level(level) {
 
 void LevelLayer::setupTriggers() {
     auto camera = Director::get()->m_camera;
-    float currTime = timeForX(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * 0.25f);
+    float currTime = timeForX(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO);
 
     std::cout << "compiling color triggers" << std::endl;
     for (auto& [channel, changes] : m_rawColorChanges) {
-        m_colorChannels[channel]->m_colorTriggers = std::make_unique<GameEffect<ColorChange>>(ColorChannelValue {m_colorChannels[channel]->m_baseColor, *m_colorChannels[channel]->m_blending});
+        m_colorChannels[channel]->m_colorTriggers = std::make_unique<GameEffect<ColorChange>>(ColorChannelValue {m_colorChannels[channel]->m_baseColor, m_colorChannels[channel]->m_blending});
         for (auto& [position, change] : changes) {
             m_colorChannels[channel]->m_colorTriggers->m_changes.insert({timeForX(position), ColorChange {change.m_toValue, change.m_fromValue, change.m_duration}});
         }
@@ -59,6 +65,8 @@ void LevelLayer::setupTriggers() {
     m_rawColorChanges.clear();
 
     for (auto& colorChannel : m_colorChannels) {
+        colorChannel->updateTextureColor();
+        colorChannel->updateTextureBlending();
         colorChannel->updateColor(currTime);
     }
 
@@ -77,20 +85,24 @@ void LevelLayer::setupTriggers() {
         group->updateAlphaTriggers(currTime);
     }
 
-    std::cout << "compiling move triggers" << std::endl;
-    for (auto& [group, changes] : m_rawPositionChanges) {
-        m_groups[group]->m_positionChanges = std::make_unique<GameEffect<PositionChange>>(PositionValue {{0, 0}});
-        for (auto& [position, change] : changes) {
-            m_groups[group]->m_positionChanges->m_changes.insert({timeForX(position), PositionChange {change.m_toValue, change.m_fromValue, change.m_duration}});
-        }
-        m_groups[group]->m_positionChanges->setup();
-        m_groupsWithPositionChanges.push_back(group);
+    for (auto& groupGroup : GroupGroup::m_groupGroups) {
+        groupGroup->updateAlpha();
     }
-    m_rawPositionChanges.clear();
 
-    for (auto& group : m_groups) {
-        group->updatePositionChanges(currTime);
-    }
+    // std::cout << "compiling move triggers" << std::endl;
+    // for (auto& [group, changes] : m_rawPositionChanges) {
+    //     m_groups[group]->m_positionChanges = std::make_unique<GameEffect<PositionChange>>(PositionValue {{0, 0}});
+    //     for (auto& [position, change] : changes) {
+    //         m_groups[group]->m_positionChanges->m_changes.insert({timeForX(position), PositionChange {change.m_toValue, change.m_fromValue, change.m_duration}});
+    //     }
+    //     m_groups[group]->m_positionChanges->setup();
+    //     m_groupsWithPositionChanges.push_back(group);
+    // }
+    // m_rawPositionChanges.clear();
+
+    // for (auto& group : m_groups) {
+    //     group->updatePositionChanges(currTime);
+    // }
 }
 
 void LevelLayer::updateTriggers(float time) {
@@ -102,9 +114,9 @@ void LevelLayer::updateTriggers(float time) {
         m_groups[group]->updateAlphaTriggers(time);
     }
 
-    for (auto& group : m_groupsWithPositionChanges) {
-        m_groups[group]->updatePositionChanges(time);
-    }
+    // for (auto& group : m_groupsWithPositionChanges) {
+    //     m_groups[group]->updatePositionChanges(time);
+    // }
 }
 
 void LevelLayer::parseLevelString() {
@@ -176,8 +188,9 @@ void LevelLayer::parseColor(std::string colorString) {
     }
 
     m_colorChannels[index]->m_baseColor = baseColor;
-    *m_colorChannels[index]->m_currColor = baseColor;
-    *m_colorChannels[index]->m_blending = blending;
+    m_colorChannels[index]->m_currColor = baseColor;
+    
+    m_colorChannels[index]->m_blending = blending;
     m_colorChannels[index]->m_inheritedDelta = inheritedDelta;
     if (copyColor != 0) {
         m_colorChannels[index]->m_colorCopied = true;
@@ -195,18 +208,23 @@ void LevelLayer::parseLevelProperties() {
         m_groups[i]->m_index = i;
     }
 
+    auto colorTexture = std::make_shared<Texture>(2, 1013, GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA, GL_UNSIGNED_BYTE);
+
     for (int i = 0; i < 1013; i++) {
         m_colorChannels.push_back(std::make_shared<ColorChannel>());
         m_colorChannels[i]->m_index = i;
+        m_colorChannels[i]->m_colorTexture = colorTexture;
     }
 
+    colorTexture->setUniforms("colorTexture");
+
     m_colorChannels[1000]->m_childChannels.push_back(m_colorChannels[1007]); // LBG (not LBJ (Lyndon B. Johnson)))
-    *m_colorChannels[1007]->m_blending = true;
+    m_colorChannels[1007]->m_blending = true;
 
-    *m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color; // P1
-    *m_colorChannels[1006]->m_currColor = ColorChannel::m_p2Color; // P2
+    m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color; // P1
+    m_colorChannels[1006]->m_currColor = ColorChannel::m_p2Color; // P2
 
-    *m_colorChannels[1010]->m_currColor = {0, 0, 0}; // BLACK
+    m_colorChannels[1010]->m_currColor = {0, 0, 0}; // BLACK
 
     for (auto& [key, value] : m_levelProperties) {
         if (key == "kA4") {
@@ -280,8 +298,7 @@ void LevelLayer::setupObjects() {
 
         auto gameObj = new GameObject(id, obj, this);
         if (gameObj->m_id == -1) delete gameObj;
-        addChild(gameObj);
-        gameObj->addToGroups();
+        m_levelBatcher->addChild(gameObj);
     }
 }
 
@@ -310,7 +327,7 @@ void LevelLayer::onMouseScroll(double xoffset, double yoffset) {
     float ratioX = (camera->m_viewScale.x - yoffset * 0.1f) / camera->m_viewScale.x;
     float ratioY = (camera->m_viewScale.y - yoffset * 0.1f) / camera->m_viewScale.y;
 
-    float lockX = m_autoScroll ? camera->m_viewSize.x * camera->m_viewScale.x * 0.25f : Director::get()->m_mousePosition.x;
+    float lockX = m_autoScroll ? camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO : Director::get()->m_mousePosition.x;
 
     camera->m_position.x += (lockX * (1.f - ratioX)) * camera->m_viewScale.x;
     camera->m_position.y += (Director::get()->m_mousePosition.y * (1.f - ratioY)) * camera->m_viewScale.y;
@@ -329,7 +346,7 @@ void LevelLayer::update(float delta) {
     float prevX = camera->m_position.x;
 
     if (m_autoScroll) {
-        float speed = m_speedChanges->mostRecent(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * 0.25f).m_toValue.val;
+        float speed = m_speedChanges->mostRecent(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO).m_toValue.val;
         camera->m_position.x += delta * speed;
     }
 
@@ -342,7 +359,7 @@ void LevelLayer::update(float delta) {
     }
 
     if (prevX != camera->m_position.x) {
-        updateTriggers(timeForX(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * 0.25f));
+        updateTriggers(timeForX(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO));
     }
 
     m_prevMousePos = Director::get()->m_mousePosition;
@@ -356,12 +373,12 @@ void LevelLayer::draw() {
     ImGui::Begin("Options");
 
     if (ImGui::ColorEdit4("P1 Color", &ColorChannel::m_p1Color.r)) {
-        *m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color;
-        m_colorChannels[1007]->parentUpdated(m_colorChannels[1000]->m_currColor->toHSVA());
+        m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color;
+        m_colorChannels[1007]->parentUpdated(m_colorChannels[1000]->m_currColor.toHSVA());
     };
 
     if (ImGui::ColorEdit4("P2 Color", &ColorChannel::m_p2Color.r)) {
-        *m_colorChannels[1006]->m_currColor = ColorChannel::m_p2Color;
+        m_colorChannels[1006]->m_currColor = ColorChannel::m_p2Color;
     };
 
     ImGui::Checkbox("Auto Scroll", &m_autoScroll);

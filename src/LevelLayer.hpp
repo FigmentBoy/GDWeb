@@ -5,10 +5,10 @@
 
 #include "Triggers.hpp"
 #include "Level.hpp"
-#include "SectionBatcher.hpp"
 #include "Group.hpp"
 #include "ColorChannel.hpp"
 #include "RepeatForeverSprite.hpp"
+#include "Batcher.hpp"
 
 #include <string>
 #include <map>
@@ -38,7 +38,7 @@ public:
     std::map<std::string, std::string> m_levelProperties;
     std::vector<std::map<std::string, std::string>> m_parsedLevelString;
 
-    std::shared_ptr<SectionBatcher> m_levelBatcher;
+    std::shared_ptr<Batcher> m_levelBatcher;
     std::shared_ptr<Node> m_nonBatchedObjectContainer;
 
     int m_groundIndex;

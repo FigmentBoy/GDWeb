@@ -131,17 +131,14 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 std::vector<std::string> groupStrings = split(value, ".");
                 for (auto& groupString : groupStrings) {
                     int groupID = std::stoi(groupString);
-                    properties->m_groupIDs.push_back(groupID);
+                    properties->m_groups.push_back(layer->m_groups[groupID]);
                 }
                 break;
         }
     }
 
     m_originalPosition = m_position;
-
-    for (auto group : properties->m_groupIDs) {
-        m_groups.push_back(layer->m_groups[group]);
-    }
+    m_groupGroupIndex = GroupGroup::getGroupGroupIndex(properties->m_groups);
 
     updateModelMatrix();
 
@@ -211,18 +208,15 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
 
         std::string colorType = gameObjectJson.contains("color_type") ? gameObjectJson["color_type"] : "Base";
         if (colorType == "Base") {
-            sprite->m_color = m_layer->m_colorChannels[m_colorChannel1]->m_currColor;
-            sprite->m_blending = m_layer->m_colorChannels[m_colorChannel1]->m_blending;
-            m_layer->m_colorChannels[m_colorChannel1]->m_sprites.push_back(sprite);
+            sprite->m_colorChannel = m_colorChannel1;
         } else if (colorType == "Detail") {
-            sprite->m_color = m_layer->m_colorChannels[m_colorChannel2]->m_currColor;
-            sprite->m_blending = m_layer->m_colorChannels[m_colorChannel2]->m_blending;
-            m_layer->m_colorChannels[m_colorChannel2]->m_sprites.push_back(sprite);
+            sprite->m_colorChannel = m_colorChannel2;
         } else if (colorType == "Black") {
-            sprite->m_color = m_layer->m_colorChannels[1010]->m_currColor;
+            sprite->m_colorChannel = 1010;
         }
     }
 
+    sprite->m_groupGroupIndex = m_groupGroupIndex;
     sprite->updateModelMatrix();
 
     sprite->m_batchZLayer = m_zLayer;
@@ -236,12 +230,6 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     if (m_layer) {
         m_layer->m_levelBatcher->addBatchSprite(sprite);
     };
-}
-
-void GameObject::addToGroups() {
-    for (auto group : m_groups) {
-        group->m_objects.push_back(std::static_pointer_cast<GameObject>(shared_from_this()));
-    }
 }
 
 void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
@@ -259,15 +247,11 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     if (m_layer) {
         std::string colorType = child.contains("color_type") ? child["color_type"] : "Base";
         if (colorType == "Base") {
-            sprite->m_color = m_layer->m_colorChannels[m_colorChannel1]->m_currColor;
-            sprite->m_blending = m_layer->m_colorChannels[m_colorChannel1]->m_blending;
-            m_layer->m_colorChannels[m_colorChannel1]->m_sprites.push_back(sprite);
+            sprite->m_colorChannel = m_colorChannel1;
         } else if (colorType == "Detail") {
-            sprite->m_color = m_layer->m_colorChannels[m_colorChannel2]->m_currColor;
-            sprite->m_blending = m_layer->m_colorChannels[m_colorChannel2]->m_blending;
-            m_layer->m_colorChannels[m_colorChannel2]->m_sprites.push_back(sprite);
+            sprite->m_colorChannel = m_colorChannel2;
         } else if (colorType == "Black") {
-            *sprite->m_color = {0.f, 0.f, 0.f, 1.f};
+            sprite->m_colorChannel = 1010;
         }
     }
     
@@ -281,6 +265,7 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     if (child.contains("z")) sprite->m_zOrder = child["z"].get<int>();
     
     parent->addChild(sprite);
+    sprite->m_groupGroupIndex = m_groupGroupIndex;
     sprite->updateModelMatrix();
     m_sprites.push_back(sprite);
 
@@ -292,34 +277,4 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
             addChildSprite(sprite, grandchild);
         }
     }
-}
-
-void GameObject::update(float delta) {
-    if (m_dirtyAlpha) {
-        m_dirtyAlpha = false;
-        float alpha = 1.0f;
-
-        for (auto group : m_groups) {
-            alpha *= group->m_currAlpha;
-        }
-
-        for (auto sprite : m_sprites) {
-            sprite->m_alphaModifier = alpha;
-            sprite->m_dirtyColor = true;
-        }
-    }
-
-    if (m_dirtyPosition) {
-        m_dirtyPosition = false;
-        Point delta = {0, 0};
-
-        for (auto group : m_groups) {
-            delta += group->m_position;
-        }
-
-        m_position = m_originalPosition + delta;
-        m_dirtyMatrix = true;
-    }
-
-    Node::update(delta);
 }

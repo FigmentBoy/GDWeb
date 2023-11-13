@@ -14,10 +14,12 @@
 
 class Sprite : public Node {
 public:
-    std::shared_ptr<RGBAColor> m_color; // So we can just update them in the coloractions!
-    std::shared_ptr<bool> m_blending;
+    GLfloat m_colorChannel;
+    GLfloat m_groupGroupIndex = 0;
+
     float m_alphaModifier = 1.0f;
 
+    int m_textureIndex = 0;
     int m_objectIndex = -1;
     float m_batchZLayer = 0.0f;
     Batcher* m_currentBatcher = nullptr;
@@ -26,7 +28,7 @@ public:
     std::unique_ptr<VBO> m_vbo;
     std::unique_ptr<EBO> m_ebo;
     
-    GLfloat m_verticies[40];
+    GLfloat m_verticies[28];
     GLuint m_indicies[6] = {
         0, 2, 1, // Upper triangle
         0, 3, 2 // Lower triangle
@@ -42,7 +44,6 @@ public:
     void update(float delta);
     void draw();
     virtual void updateVertices();
-    void updateVerticeColors();
     
     bool m_dirty = true;
     bool m_dirtyColor = false;

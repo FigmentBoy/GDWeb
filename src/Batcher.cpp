@@ -15,11 +15,11 @@ Batcher::Batcher() {
     m_vbo = std::make_unique<VBO>();
     m_ebo = std::make_unique<EBO>();
 
-    m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 10 * sizeof(GLfloat), (void*)0);
-	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 2, 4, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(8 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 10 * sizeof(GLfloat), (void*)(9 * sizeof(GLfloat)));
+    m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 7 * sizeof(GLfloat), (void*)0);
+	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 7 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 7 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
 }
 
 void Batcher::addBatchSprite(std::shared_ptr<Sprite> sprite) {
@@ -29,8 +29,12 @@ void Batcher::addBatchSprite(std::shared_ptr<Sprite> sprite) {
     if (std::find(m_textures.begin(), m_textures.end(), sprite->m_spriteFrame->m_texture) == m_textures.end()) {
         m_textures.push_back(sprite->m_spriteFrame->m_texture);
     }
-    m_sprites.push_back(sprite);
-    m_sorted = false;
+
+    m_sprites.insert(std::upper_bound(m_sprites.begin(), m_sprites.end(), sprite, [](std::shared_ptr<Sprite> a, std::shared_ptr<Sprite> b) {
+        return  a->m_batchZLayer != b->m_batchZLayer ? a->m_batchZLayer < b->m_batchZLayer : 
+                a->m_zOrder != b->m_zOrder ? a->m_zOrder < b->m_zOrder :
+                a->m_objectIndex < b->m_objectIndex;
+    }), sprite);
 
     recurseAdd(sprite);
 }
@@ -56,6 +60,9 @@ void Batcher::recurseAdd(std::shared_ptr<Sprite> sprite) {
         m_textures.push_back(sprite->m_spriteFrame->m_texture);
     }
 
+    int textureIndex = std::find(m_textures.begin(), m_textures.end(), sprite->m_spriteFrame->m_texture) - m_textures.begin();
+    sprite->m_textureIndex = textureIndex;
+
     for (auto child : sprite->m_children) {
         if (std::shared_ptr<Sprite> newSprite = std::dynamic_pointer_cast<Sprite>(child)) {
             if (newSprite->m_currentBatcher == this) newSprite->removeFromBatcher(); // So we don't draw it
@@ -64,24 +71,14 @@ void Batcher::recurseAdd(std::shared_ptr<Sprite> sprite) {
     }
 }
 
-void Batcher::draw() {
-    Rect cameraRect = Director::get()->m_camera->getViewRect();
-    std::vector<std::shared_ptr<Sprite>> spritesToDraw;
-    int numSprites = 0;
-
-    for (auto sprite : m_sprites) {
-        if (!sprite->m_visible) continue;
-        if (!sprite->getBoundingBox().intersects(cameraRect.expand(100.f))) continue;
-        spritesToDraw.push_back(sprite);
-        numSprites += 1 + sprite->childrenCount();
-    }
-
-    if (spritesToDraw.size() == 0) return; // No sprites to draw
-
+void Batcher::setData() {
     m_vao->bind();
 
-    std::vector<GLfloat> vboData = std::vector<GLfloat>(numSprites * 10 * 4);
-    std::vector<GLuint> eboData = std::vector<GLuint>(numSprites * 6);
+    if (!m_dirty) return;
+    m_dirty = false;
+
+    std::vector<GLfloat> vboData = std::vector<GLfloat>();
+    std::vector<GLuint> eboData = std::vector<GLuint>();
 
     static GLuint templateIndices[6] = {
         0, 2, 1, // Upper triangle
@@ -89,8 +86,8 @@ void Batcher::draw() {
     };
 
     int n = 0;
-    for (int i = 0; i < spritesToDraw.size(); i++) {
-        std::shared_ptr<Sprite> sprite = spritesToDraw[i];
+    for (int i = 0; i < m_sprites.size(); i++) {
+        std::shared_ptr<Sprite> sprite = m_sprites[i];
 
         sprite->recurseChildrenWithDepth([&](std::shared_ptr<Node> node) {
             if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
@@ -101,7 +98,10 @@ void Batcher::draw() {
                     indicies[j] = templateIndices[j] + (n * 4);
                 }
 
-                memcpy(vboData.data() + (n * 10 * 4), sprite->m_verticies, sizeof(GLfloat) * 10 * 4);
+                vboData.resize((n + 1) * 7 * 4);
+                eboData.resize((n + 1) * 6);
+
+                memcpy(vboData.data() + (n * 7 * 4), sprite->m_verticies, sizeof(GLfloat) * 7 * 4);
                 memcpy(eboData.data() + (n * 6), indicies, sizeof(GLuint) * 6);
 
                 n++;
@@ -109,19 +109,23 @@ void Batcher::draw() {
         });
     }
 
-    if (n > prevMaxRendered) {
-        m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 10 * 4);
-        m_ebo->setIndices(eboData.data(), n * sizeof(GLuint)  * 6);
-        prevMaxRendered = n;
-    } else {
-        m_vbo->setBufferData(0, vboData.data(), n * sizeof(GLfloat) * 10 * 4);
-        m_ebo->setBufferData(0, eboData.data(), n * sizeof(GLuint)  * 6);
-    }
+    m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 7 * 4);
+    m_ebo->setIndices(eboData.data(), n * sizeof(GLuint)  * 6);
+    numRendered = n;
+}
 
-    for (auto texture : m_textures) {
-        texture->setUniforms();
-        texture->bind();
+void Batcher::update(float dt) {
+    if (m_dirty) Node::update(dt);
+    setData();
+}
+
+void Batcher::draw() {
+    m_vao->bind();
+
+    for (int i = 0; i < m_textures.size(); i++) {
+        m_textures[i]->setUniforms(i);
+        m_textures[i]->bind();
     }
     
-    glDrawElements(GL_TRIANGLES, n * 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, numRendered * 6, GL_UNSIGNED_INT, 0);
 }

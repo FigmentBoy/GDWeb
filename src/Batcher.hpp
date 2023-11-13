@@ -8,6 +8,7 @@
 #include "EBO.hpp"
 
 #include "Shader.hpp"
+#include <limits>
 
 class Sprite;
 
@@ -17,7 +18,7 @@ public:
     
     std::vector<std::shared_ptr<Texture>> m_textures;
 
-    int prevMaxRendered = 0;
+    int numRendered = 0;
 
     std::unique_ptr<VAO> m_vao;
     std::unique_ptr<VBO> m_vbo;
@@ -33,5 +34,8 @@ public:
     
     virtual void recurseAdd(std::shared_ptr<Sprite>);
     
+    virtual void update(float dt);
     virtual void draw();
+    virtual void setData();
+    bool m_dirty = true;
 };

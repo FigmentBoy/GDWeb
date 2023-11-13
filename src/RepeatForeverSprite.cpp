@@ -29,16 +29,15 @@ void RepeatForeverSprite::updateVertices() {
     float deltaWidth = unitWidth * times;
 
     float slot = m_spriteFrame->m_texture->m_slot - GL_TEXTURE0;
-    float blendingVal = 0.0f;
 
-    GLfloat verticies[40] = { 
-        bottomLeftTransformed.x,               bottomLeftTransformed.y,                    	   0,      1,    m_color->r, m_color->g, m_color->b, m_color->a,    slot,       blendingVal,// Lower left corner
-        bottomLeftTransformed.x,               bottomLeftTransformed.y + m_lockedHeight,       0,      0,    m_color->r, m_color->g, m_color->b, m_color->a,    slot,       blendingVal,// Upper left corner
-        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y + m_lockedHeight,       times,  0,    m_color->r, m_color->g, m_color->b, m_color->a,    slot,       blendingVal,// Upper right corner
-        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y,                        times,  1,    m_color->r, m_color->g, m_color->b, m_color->a,    slot,       blendingVal,// Lower right corner
+    GLfloat verticies[28] = { 
+        bottomLeftTransformed.x,               bottomLeftTransformed.y,                    	   0,      1,    m_colorChannel,  m_groupGroupIndex,  slot,// Lower left corner
+        bottomLeftTransformed.x,               bottomLeftTransformed.y + m_lockedHeight,       0,      0,    m_colorChannel,  m_groupGroupIndex,  slot,// Upper left corner
+        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y + m_lockedHeight,       times,  0,    m_colorChannel,  m_groupGroupIndex,  slot,// Upper right corner
+        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y,                        times,  1,    m_colorChannel,  m_groupGroupIndex,  slot,// Lower right corner
     };
 
-    for (int i = 0; i < 40; i++) m_verticies[i] = verticies[i];
+    for (int i = 0; i < 28; i++) m_verticies[i] = verticies[i];
 
     if (!m_currentBatcher) m_vbo->setVertices(m_verticies, sizeof(m_verticies));
 }

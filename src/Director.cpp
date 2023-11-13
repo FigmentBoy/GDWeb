@@ -94,11 +94,7 @@ bool Director::init() {
     ImGui_ImplOpenGL3_Init();
     auto gui = GUI::get(); (void) gui;
 
-    #ifdef EMSCRIPTEN
-    m_defaultShader = std::make_shared<Shader>("static/shaders/defaultES.vert", "static/shaders/defaultES.frag");
-    #else
     m_defaultShader = std::make_shared<Shader>("static/shaders/default.vert", "static/shaders/default.frag");
-    #endif
     
     m_shader = m_defaultShader;
 
@@ -107,9 +103,6 @@ bool Director::init() {
 
     m_rootNode = std::make_unique<LoadingLayer>();
 
-    m_prevFrameTime = glfwGetTime();
-    m_prevFPSTime = glfwGetTime();
-    m_framesSince = 0;
     return true;
 }
 
@@ -162,21 +155,12 @@ void Director::mainLoop() {
 
     m_shader->deactivate();
 
-    m_framesSince++;
-    if (m_prevFrameTime > m_prevFPSTime + 1) {
-        m_fpsValue = m_framesSince / (m_prevFrameTime - m_prevFPSTime);
-        m_prevFPSTime = m_prevFrameTime;
-        m_framesSince = 0;
-    }
-
-    ImGui::PushFont(GUI::get()->micross->regular);
-    ImGui::GetForegroundDrawList()->AddText(ImVec2(5, 5), ImColor(1.0f, 1.0f, 1.0f, 1.0f), string_format("FPS: %.2f", m_fpsValue).c_str());
-    ImGui::PopFont();
-
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(m_window);
+    emscripten_webgl_commit_frame();
+
     glfwPollEvents();
 }
 
