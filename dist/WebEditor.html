@@ -27,6 +27,7 @@
 </head>
 <body style="background:black">
   <canvas class="game" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+  <audio src="ThunderZonev2.mp3" id="audio"></audio>
   <script type="text/javascript">
     var Module = {
         preRun: [],
@@ -45,6 +46,10 @@
             var canvas = document.getElementById('canvas');
             canvas.addEventListener("webglcontextlost", function(e) { alert('FIXME: WebGL context lost, please reload the page'); e.preventDefault(); }, false);
             return canvas;
+        })(),
+        audio: (function() {
+            var audio = document.getElementById('audio');
+            return audio;
         })(),
         setStatus: function(text) { },
         monitorRunDependencies: function(left) { },

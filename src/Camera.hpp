@@ -4,8 +4,6 @@
 #include "Geometry.hpp"
 #include "Node.hpp"
 
-#define VIEW_RATIO 0.333f
-
 class Camera {
 public:
     glm::vec2 m_position;
@@ -15,6 +13,7 @@ public:
     Camera();
 
     Rect getViewRect();
+    float getPlayerX();
 
     glm::mat4 getProjectionMatrix();
     glm::mat4 getViewMatrix();

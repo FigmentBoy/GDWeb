@@ -18,15 +18,15 @@ GroundSprite::GroundSprite(int index, LevelLayer* layer) {
     } else {
         std::string baseName = (std::string) "groundSquare_" + (index < 10 ? "0" : "") + std::to_string(index) + "_001.png";
         std::shared_ptr<SpriteFrame> baseFrame = SpriteFrameCache::get()->getSpriteFrameByName(baseName);
-        std::shared_ptr<RepeatForeverSprite> baseSprite = std::make_shared<RepeatForeverSprite>(baseFrame, baseFrame->m_size.height);
+        std::shared_ptr<RepeatForeverSprite> baseSprite = std::make_shared<RepeatForeverSprite>(baseFrame, 128.f);
         baseSprite->m_position = {0, -128};
         baseSprite->m_zOrder = 0.0f;
         addChild(baseSprite);
 
         std::string topName = (std::string) "groundSquare_" + (index < 10 ? "0" : "") + std::to_string(index) + "_2_001.png";
         std::shared_ptr<SpriteFrame> topFrame = SpriteFrameCache::get()->getSpriteFrameByName(topName);
-        std::shared_ptr<RepeatForeverSprite> topSprite = std::make_shared<RepeatForeverSprite>(topFrame, topFrame->m_size.height);
-        topSprite->m_position = {0.f, -topFrame->m_size.height};
+        std::shared_ptr<RepeatForeverSprite> topSprite = std::make_shared<RepeatForeverSprite>(topFrame, topFrame->m_size.height / 4.f);
+        topSprite->m_position = {0.f, -topFrame->m_size.height / 4.f};
         topSprite->m_zOrder = 1.0f;
         addChild(topSprite);
 

@@ -6,6 +6,9 @@
 BackgroundSprite::BackgroundSprite(int index, LevelLayer* layer) {
     auto camera = Director::get()->m_camera;
     if (index == 0) index = 1;
+
+    m_position = {-1000.f, -1000.f};
+
     std::string name = (std::string) "game_bg_" + (index < 10 ? "0" : "") + std::to_string(index) + "_001.png";
     m_sprite = std::make_shared<RepeatForeverSprite>(SpriteFrameCache::get()->getSpriteFrameByName(name), camera->m_viewSize.y * camera->m_viewScale.y);
     m_sprite->m_position = {0, 0};

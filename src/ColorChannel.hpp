@@ -25,6 +25,9 @@ struct AlphaTrigger {
 class ColorChannelValue;
 using ColorChange = TypeChanger<ColorChannelValue>;
 
+class PulseValue;
+using PulseChange = CompoundTypeChanger<PulseValue>;
+
 class ColorChannel {
 public:
     std::shared_ptr<Texture> m_colorTexture;
@@ -45,7 +48,9 @@ public:
     inline static RGBAColor m_p2Color = {0, 1, 0.5};
 
     std::vector<std::shared_ptr<ColorChannel>> m_childChannels;
+
     std::unique_ptr<GameEffect<ColorChange>> m_colorTriggers;
+    std::unique_ptr<GameEffect<PulseChange>> m_pulseTriggers;
 
     std::shared_ptr<Batcher> m_batcher;
 
@@ -54,6 +59,8 @@ public:
     virtual void parentUpdated(HSVAColor parentColor, float time);
     void setBlending(bool blending);
     void updateColor(float time);
+    void updatePulse(float time);
+
     RGBAColor valueFor(float time);
 
     void updateTextureColor();

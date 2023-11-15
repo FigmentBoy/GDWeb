@@ -4,6 +4,7 @@
 #include "Color.hpp"
 #include "Sprite.hpp"
 #include "easing.h"
+#include "Triggers.hpp"
 #include <nlohmann/json.hpp>
 
 class LevelLayer;
@@ -11,8 +12,14 @@ class Group;
 
 using json = nlohmann::json;
 
+enum class PulseChannel {
+    Color = 0,
+    Group = 1
+};
+
 struct GameObjectProperties {
     bool usingOldColor = false;
+    bool spawnTriggered = false;
 
     float duration = 1.0f;
     int targetChannel = 1;
@@ -24,6 +31,8 @@ struct GameObjectProperties {
 
     easingFunction function = [](float t, float r) { return t; };
     float rate = 1.0f;
+    bool lockPlayerX = false;
+    bool activateGroup = false;
 
     bool hasDelta1 = false;
     bool hasDelta2 = false;
@@ -35,6 +44,18 @@ struct GameObjectProperties {
 
     int copyChannelID = -1;
     HSVAColor copyChannelDelta = {0, 1, 1};
+
+    bool pulseExclusive = false;
+
+    float fadeIn;
+    float hold;
+    float fadeOut;
+
+    PulseType pulseType;
+    PulseChannel channelType;
+
+    HSVAColor pulseHSV;
+    RGBAColor pulseRGB;
 };
 
 class GameObject : public Node {

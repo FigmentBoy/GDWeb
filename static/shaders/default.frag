@@ -58,7 +58,12 @@ vec4 shiftHSV(vec4 color, float h, float s, float v, bool addS, bool addV) {
 }
 
 void main() {
-    vec4 channelColor = texelFetch(colorTexture, ivec2(0, color), 0);
+    vec4 channelColor = texelFetch(colorTexture, ivec2(0, abs(color)), 0);
+
+    if (color < 0.0) {
+        channelColor = shiftHSV(channelColor, 0.0, 0.0, -20.0, true, true);
+    }
+
     channelColor.a *= texelFetch(groupGroupTexture, ivec2(0, groupGroup), 0).r;
 
     if (hsv.w != 0.0) {

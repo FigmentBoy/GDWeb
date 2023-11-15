@@ -3,8 +3,9 @@
 #include "Node.hpp"
 #include "Camera.hpp"
 
-#include "Triggers.hpp"
+#include "GameEffect.hpp"
 #include "Level.hpp"
+#include "Triggers.hpp"
 #include "Group.hpp"
 #include "ColorChannel.hpp"
 #include "RepeatForeverSprite.hpp"
@@ -33,7 +34,17 @@ public:
     std::map<int, std::map<float, std::vector<std::shared_ptr<PositionChange>>>> m_rawPositionChanges;
     std::vector<int> m_groupsWithPositionChanges;
 
+    std::map<int, std::map<float, std::shared_ptr<ToggleChange>>> m_rawToggleChanges;
+    std::vector<int> m_groupsWithToggleChanges;
+
+    std::map<int, std::map<float, std::vector<std::shared_ptr<PulseChange>>>> m_rawPulseChanges;
+    std::unique_ptr<GameEffect<PulseChange>> m_pulseChanges;
+    std::vector<int> m_colorChannelsWithPulseChanges;
+
     std::unique_ptr<GameEffect<SpeedChange>> m_speedChanges;
+
+    std::map<float, std::shared_ptr<InverseSpeedChange>> m_rawInverseSpeedChanges;
+    std::unique_ptr<GameEffect<InverseSpeedChange>> m_inverseSpeedChanges;
 
     std::map<std::string, std::string> m_levelProperties;
     std::vector<std::map<std::string, std::string>> m_parsedLevelString;
@@ -41,12 +52,16 @@ public:
     std::shared_ptr<Batcher> m_levelBatcher;
     std::shared_ptr<Node> m_nonBatchedObjectContainer;
 
+    std::map<int, std::vector<float>> m_stopTriggerLocations;
+
     int m_groundIndex;
     int m_backgroundIndex;
+    float m_prevX = -1000.f;
 
     LevelLayer(Level* level);
 
     float timeForX(float x);
+    float xForTime(float time);
 
     void parseColor(std::string colorString);
     void parseLevelString();

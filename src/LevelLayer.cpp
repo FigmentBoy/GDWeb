@@ -1,3 +1,4 @@
+#include "Triggers.hpp"
 #include "LevelLayer.hpp"
 #include "Director.hpp"
 #include "utils.hpp"
@@ -21,17 +22,9 @@ LevelLayer::LevelLayer(Level* level) : m_level(level) {
     parseLevelString();
     parseLevelProperties();
 
-    auto backgroundSprite = new BackgroundSprite(m_backgroundIndex, this);
-    backgroundSprite->m_zOrder = -1.0f;
-    addChild(backgroundSprite);
-
     m_levelBatcher = std::make_shared<Batcher>();
     m_levelBatcher->m_zOrder = 0.0f;
-    addChild(m_levelBatcher);
-
-    auto groundSprite = new GroundSprite(m_groundIndex, this);
-    groundSprite->m_zOrder = 1.0f;
-    addChild(groundSprite);
+    addChild(m_levelBatcher); 
 
     setupObjects();
 
@@ -45,13 +38,28 @@ LevelLayer::LevelLayer(Level* level) : m_level(level) {
     m_speedChanges->setup();
     setupTriggers();
 
+    auto backgroundSprite = new BackgroundSprite(m_backgroundIndex, this);
+    backgroundSprite->m_zOrder = -1.0f;
+    addChild(backgroundSprite);
+
+    auto groundSprite = new GroundSprite(m_groundIndex, this);
+    groundSprite->m_zOrder = 1.0f;
+    addChild(groundSprite);
+
     registerMouseClickEvent();
     registerMouseScrollEvent();
 }
 
 void LevelLayer::setupTriggers() {
     auto camera = Director::get()->m_camera;
-    float currTime = timeForX(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO);
+    float currTime = timeForX(camera->getPlayerX());
+
+    std::cout << "compiling inverse speed changes" << std::endl;
+    m_inverseSpeedChanges = std::make_unique<GameEffect<InverseSpeedChange>>(InverseSpeedValue {1.0f / m_speedChanges->m_startingValue.val});
+    for (auto& [position, change] : m_rawInverseSpeedChanges) {
+        m_inverseSpeedChanges->m_changes.insert({timeForX(position), change});
+    }
+    m_inverseSpeedChanges->setup();
 
     std::cout << "compiling color triggers" << std::endl;
     for (auto& [channel, changes] : m_rawColorChanges) {
@@ -64,6 +72,19 @@ void LevelLayer::setupTriggers() {
         m_colorChannelsWithChanges.push_back(channel);
     }
     m_rawColorChanges.clear();
+
+    std::cout << "compiling pulse triggers" << std::endl;
+    for (auto& [channel, changes] : m_rawPulseChanges) {
+        m_colorChannels[channel]->m_pulseTriggers = std::make_unique<GameEffect<PulseChange>>(PulseValue {{}});
+        for (auto& [position, triggers] : changes) {
+            for (auto& change : triggers) {
+                m_colorChannels[channel]->m_pulseTriggers->m_rawChanges[timeForX(position)].push_back(change);
+            }
+        }
+        m_colorChannels[channel]->m_pulseTriggers->setup();
+        m_colorChannelsWithPulseChanges.push_back(channel);
+    }
+    m_rawPulseChanges.clear();
 
     for (auto& colorChannel : m_colorChannels) {
         colorChannel->updateTextureColor();
@@ -96,7 +117,8 @@ void LevelLayer::setupTriggers() {
 
         for (auto& [position, changeVec] : changes) {
             for (auto& change : changeVec) {
-                m_groups[group]->m_positionChanges->m_rawChanges[timeForX(position)].push_back(change);
+                change->m_positionTime = timeForX(position);
+                m_groups[group]->m_positionChanges->m_rawChanges[change->m_positionTime].push_back(change);
             }
         }
 
@@ -108,11 +130,38 @@ void LevelLayer::setupTriggers() {
     for (auto& group : m_groups) {
         group->updatePositionChanges(currTime);
     }
+
+    std::cout << "Compiling toggle triggers" << std::endl;
+    for (auto& [group, toggles] : m_rawToggleChanges) {
+        m_groups[group]->m_toggleChanges = std::make_unique<GameEffect<ToggleChange>>(ToggleValue {true});
+        for (auto& [position, change] : toggles) {
+            m_groups[group]->m_toggleChanges->m_changes.insert({timeForX(position), change});
+        }
+        m_groups[group]->m_toggleChanges->setup();
+        m_groupsWithToggleChanges.push_back(group);
+    }
+    m_rawToggleChanges.clear();
+
+    for (auto& group : m_groups) {
+        group->updateToggleChanges(currTime);
+    }
+
+    std::cout << "Compiling stop triggers" << std::endl;
+    for (auto& [group, stops] : m_stopTriggerLocations) {
+        for (auto& stop : stops) {
+            m_groups[group]->addStopTrigger(timeForX(stop));
+        }
+    }
+    m_stopTriggerLocations.clear();
 }
 
 void LevelLayer::updateTriggers(float time) {
     for (auto& channel : m_colorChannelsWithChanges) {
         m_colorChannels[channel]->updateColor(time);
+    }
+
+    for (auto& channel : m_colorChannelsWithPulseChanges) {
+        m_colorChannels[channel]->updatePulse(time);
     }
 
     for (auto& group : m_groupsWithAlphaChanges) {
@@ -121,6 +170,10 @@ void LevelLayer::updateTriggers(float time) {
 
     for (auto& group : m_groupsWithPositionChanges) {
         m_groups[group]->updatePositionChanges(time);
+    }
+
+    for (auto& group : m_groupsWithToggleChanges) {
+        m_groups[group]->updateToggleChanges(time);
     }
 }
 
@@ -207,6 +260,10 @@ void LevelLayer::parseColor(std::string colorString) {
 
 float LevelLayer::timeForX(float x) {
     return m_speedChanges->valueFor(x).val;
+}
+
+float LevelLayer::xForTime(float time) {
+    return m_inverseSpeedChanges->valueFor(time).val;
 }
 
 void LevelLayer::parseLevelProperties() {
@@ -305,8 +362,9 @@ void LevelLayer::setupObjects() {
         int id = std::stoi(obj.at("1"));
 
         auto gameObj = new GameObject(id, obj, this);
+        
         if (gameObj->m_id == -1) delete gameObj;
-        m_levelBatcher->addChild(gameObj);
+        else m_levelBatcher->addChild(gameObj);
     }
 }
 
@@ -335,7 +393,7 @@ void LevelLayer::onMouseScroll(double xoffset, double yoffset) {
     float ratioX = (camera->m_viewScale.x - yoffset * 0.1f) / camera->m_viewScale.x;
     float ratioY = (camera->m_viewScale.y - yoffset * 0.1f) / camera->m_viewScale.y;
 
-    float lockX = m_autoScroll ? camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO : Director::get()->m_mousePosition.x;
+    float lockX = m_autoScroll ? camera->getPlayerX() - camera->m_position.x : Director::get()->m_mousePosition.x;
 
     camera->m_position.x += (lockX * (1.f - ratioX)) * camera->m_viewScale.x;
     camera->m_position.y += (Director::get()->m_mousePosition.y * (1.f - ratioY)) * camera->m_viewScale.y;
@@ -351,10 +409,9 @@ void LevelLayer::update(float delta) {
     Node::update(delta);
 
     auto camera = Director::get()->m_camera;
-    float prevX = camera->m_position.x;
 
     if (m_autoScroll) {
-        float speed = m_speedChanges->mostRecent(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO)->m_toValue.val;
+        float speed = m_speedChanges->mostRecent(camera->getPlayerX()).changer->m_toValue.val;
         camera->m_position.x += delta * speed;
     }
 
@@ -366,8 +423,10 @@ void LevelLayer::update(float delta) {
         if (camera->m_position.y < -128) camera->m_position.y = -128;
     }
 
-    if (prevX != camera->m_position.x) {
-        updateTriggers(timeForX(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO));
+    float currX = camera->getPlayerX();
+    if (m_prevX != currX) {
+        updateTriggers(timeForX(currX));
+        m_prevX = currX;
     }
 
     m_prevMousePos = Director::get()->m_mousePosition;
@@ -382,7 +441,7 @@ void LevelLayer::draw() {
 
     if (ImGui::ColorEdit4("P1 Color", &ColorChannel::m_p1Color.r)) {
         m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color;
-        m_colorChannels[1007]->parentUpdated(m_colorChannels[1000]->m_currColor.toHSVA(), timeForX(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO));
+        m_colorChannels[1007]->parentUpdated(m_colorChannels[1000]->m_currColor.toHSVA(), timeForX(camera->getPlayerX()));
     };
 
     if (ImGui::ColorEdit4("P2 Color", &ColorChannel::m_p2Color.r)) {

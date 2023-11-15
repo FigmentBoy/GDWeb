@@ -28,10 +28,31 @@ public:
     };
 };
 
+struct InverseSpeedValue {
+    float val;
+};
+
+$CreateTypeChanger(InverseSpeedValue, InverseSpeed) {
+public:
+    using InverseSpeedChangeBase::InverseSpeedChangeBase;
+
+    TypeChanger(InverseSpeedValue toValue) {
+        m_toValue = toValue;
+        m_fromValue = { 0.0f };
+        m_duration = 0.0f;
+        m_cacheAfter = std::numeric_limits<float>::infinity(); // Never cache
+    };
+
+    InverseSpeedValue valueFor(float x) {
+        return { m_fromValue.val + x / m_toValue.val };
+    };
+};
+
 struct ColorChannelValue : public RGBAColor {
     bool m_blending;
 };
 
+class LevelLayer;
 
 $CreateTypeChanger(ColorChannelValue, Color) {
 public:
@@ -103,6 +124,19 @@ public:
     };
 };
 
+struct ToggleValue {
+    bool val;
+};
+
+$CreateTypeChanger(ToggleValue, Toggle) {
+public:
+    using ToggleChangeBase::ToggleChangeBase;
+
+    ToggleValue valueFor(float x) {
+        return m_toValue;
+    };
+};
+
 struct PositionValue {
     Point val;
 };
@@ -111,27 +145,147 @@ $CreateCompoundTypeChanger(PositionValue, Position) {
 public:
     using PositionChangeBase::PositionChangeBase;
     
-    easingFunction func;
+    float m_positionX;
+    float m_positionTime;
+    easingFunction func = [](float t, float r) { return t; };
     float rate;
+    bool lockX = false;
+    LevelLayer* layer;
 
-    CompoundTypeChanger<PositionValue>(PositionValue toValue, float duration, easingFunction func, float rate) : PositionChangeBase(toValue, duration) {
-        this->func = func;
-        this->rate = rate;
+    CompoundTypeChanger<PositionValue>(PositionValue toValue, float duration, easingFunction func, float rate, float m_positionX, bool lockX, LevelLayer* layer) : PositionChangeBase(toValue, duration), func(func), rate(rate), m_positionX(m_positionX), lockX(lockX), layer(layer) {};
+
+    PositionValue finalValue(PositionValue startValue);
+    Point getContribution(float x);
+    PositionValue valueFor(float x);
+};
+
+// struct BasePulseValue {
+//     float percent = 1.0f;
+
+//     BasePulseValue() {};
+//     BasePulseValue(float percent) : percent(percent) {};
+
+//     virtual RGBAColor apply(RGBAColor in) = 0;
+// };
+
+struct RGBPulseValue : public RGBAColor {
+    float percent;
+
+    RGBPulseValue(RGBAColor color, float percent) : RGBAColor(color), percent(percent) {};
+
+    RGBAColor apply(RGBAColor in) {
+        return RGBAColor::lerp(in, *this, percent);
+    }
+};
+
+struct PulseValue {
+    std::vector<std::shared_ptr<RGBPulseValue>> pulses;
+};
+
+enum class PulseType {
+    RGB = 0,
+    HSV = 1
+};
+
+$CreateCompoundTypeChanger(PulseValue, Pulse) {
+public:
+    using PulseChangeBase::PulseChangeBase;
+
+    CompoundTypeChanger<PulseValue>(bool exclusive, PulseType hsvColorType, RGBAColor toRGB, std::shared_ptr<ColorChannel> channelToCopy, HSVAColor toHSV, float fadeIn, float hold, float fadeOut)  {
+        this->m_exclusive = exclusive;
+        this->hsvColorType = hsvColorType;
+        this->toRGB = toRGB;
+        this->channelToCopy = channelToCopy;
+        this->toHSV = toHSV;
+        this->fadeIn = fadeIn;
+        this->hold = hold;
+        this->fadeOut = fadeOut;
+        this->m_duration = this->fadeIn + this->hold + this->fadeOut;
+        this->m_cacheAfter = this->fadeIn + this->hold + this->fadeOut;
     };
 
-    PositionValue finalValue(PositionValue startValue) {
-        return {startValue.val + m_toValue.val};
-    };
+    bool m_exclusive = false;
 
-    PositionValue valueFor(float x) {
-        PositionValue result = {m_fromValue.val + (m_toValue.val * func(std::min(x / m_duration, 1.0f), rate))};
+    std::shared_ptr<ColorChannel> channelToCopy;
+    HSVAColor toHSV;
+    RGBAColor toRGB;
+    PulseType hsvColorType;
 
-        for (auto& [time, changes] : m_changes) {
-            for (auto& change : changes) {
-                result = {result.val + change->m_toValue.val * change->func(std::min((x - time) / change->m_duration, 1.0f), change->rate)};
+    float fadeIn;
+    float hold;
+    float fadeOut;
+
+    RGBAColor prevCopyColor = {-1, -1, -1};
+    RGBAColor copiedDelta = {-1, -1, -1};
+
+    PulseValue finalValue(PulseValue startValue) {
+        return startValue;
+    }
+
+    PulseValue getContribution(PulseValue in, float x) {
+        PulseValue out = in;
+        float percent = 1.0f;
+
+        if (x < fadeIn) {
+            percent = x / fadeIn;
+        } else if (x > fadeIn + hold) {
+            percent = 1.0f - ((x - fadeIn - hold) / fadeOut);
+        }
+
+        percent = std::clamp(percent, 0.0f, 1.0f);
+
+        if (percent > 0.0f) {
+            switch (hsvColorType) {
+                case PulseType::RGB: {
+                    out.pulses.push_back(std::make_shared<RGBPulseValue>(toRGB, percent));
+                    break;
+                }
+                case PulseType::HSV: {
+                    auto copyColor = channelToCopy->m_currColor;
+                    if (copyColor != prevCopyColor) {
+                        auto color = channelToCopy->m_currColor.toHSVA();
+
+                        color.h += toHSV.h * percent;
+                        color.h = fmod(color.h + 360.0f, 360.0f);
+
+                        if (toHSV.addS) color.s += toHSV.s * percent;
+                        else color.s *= std::lerp(1, toHSV.s, percent);
+                        color.s = std::clamp(color.s, 0.0f, 1.0f);
+
+                        if (toHSV.addV) color.v += toHSV.v * percent;
+                        else color.v *= std::lerp(1, toHSV.v, percent);
+                        color.v = std::clamp(color.v, 0.0f, 1.0f);
+
+                        copiedDelta = color.toRGBA();
+                    }
+                    out.pulses.push_back(std::make_shared<RGBPulseValue>(copiedDelta, percent));
+                    break;
+                }
             }
         }
 
+        return out;
+    }
+
+    PulseValue valueFor(float x) {
+        PulseValue result;
+        if (!m_exclusive) {
+            for (auto& [time, changes] : m_changes) {
+                for (auto& change : changes) {
+                    result = change->getContribution(result, x - time);
+                }
+            }
+        }   
+        result = getContribution(result, x);
+
         return result;
-    };
+    }
+
+    static RGBAColor apply(RGBAColor in, PulseValue delta) {
+        RGBAColor out = in;
+        for (auto& pulse : delta.pulses) {
+            out = pulse->apply(out);
+        }
+        return out;
+    }
 };

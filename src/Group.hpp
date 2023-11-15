@@ -4,7 +4,6 @@
 #include "Triggers.hpp"
 
 class GroupGroup;
-
 class Group {
 public:
     int m_index;
@@ -12,9 +11,11 @@ public:
     Point m_position;
     float m_rotation;
     float m_currAlpha;
+    bool m_toggled = true;
 
     std::unique_ptr<GameEffect<AlphaChange>> m_alphaTriggers;
     std::unique_ptr<GameEffect<PositionChange>> m_positionChanges;
+    std::unique_ptr<GameEffect<ToggleChange>> m_toggleChanges;
 
     std::vector<std::shared_ptr<GroupGroup>> m_groupGroups;
 
@@ -22,6 +23,9 @@ public:
 
     void updateAlphaTriggers(float time);
     void updatePositionChanges(float time);
+    void updateToggleChanges(float time);
+
+    void addStopTrigger(float time);
 };
 
 

@@ -4,12 +4,20 @@
 #include <iostream>
 #include "utils.hpp"
 
+#define $TypeChangerForwardDeclaration(type, name)                              \
+    struct type;                                                                \
+    using name##Change = TypeChanger<type>;                                     \
+
 #define $CreateTypeChanger(type, name)                                          \
     using name##ChangeBase = BaseTypeChanger<type>;                             \
     using name##Change = TypeChanger<type>;                                     \
     template <>                                                                 \
     class TypeChanger<type> : public BaseTypeChanger<type>                      \
     
+#define $CompoundTypeChangerForwardDeclaration(type, name)                      \
+    struct type;                                                                \
+    using name##Change = CompoundTypeChanger<type>;                             \
+
 #define $CreateCompoundTypeChanger(type, name)                                  \
     using name##ChangeBase = BaseCompoundTypeChanger<type>;                     \
     using name##Change = CompoundTypeChanger<type>;                             \
@@ -82,6 +90,12 @@ public:
 };
 
 template <typename T>
+struct ChangerInfo {
+    float position;
+    std::shared_ptr<T> changer;
+};
+
+template <typename T>
 class BaseGameEffect {
 public:
     using Changer = T;
@@ -127,13 +141,14 @@ public:
         return m_cachedValue;
     };
 
-    virtual std::shared_ptr<Changer> mostRecent(float x) {
+    virtual ChangerInfo<Changer> mostRecent(float x) {
         typename std::map<float, std::shared_ptr<Changer>>::iterator lowerBound = m_changes.lower_bound(x);
         if (lowerBound == m_changes.begin()) {
-            return std::make_shared<Changer>(m_startingValue);
+            return {0.0f, std::make_shared<Changer>(m_startingValue)};
         }
+        
         auto iter = --lowerBound;
-        return iter->second;
+        return {iter->first, iter->second};
     };
 };
 

@@ -59,6 +59,24 @@ void ColorChannel::updateColor(float time) {
     }
 }
 
+void ColorChannel::updatePulse(float time) {
+    if (!m_pulseTriggers) return;
+
+    PulseValue res = m_pulseTriggers->valueFor(time);
+
+    auto old = m_currColor;
+    m_currColor = PulseChange::apply(m_currColor, res);
+    if (m_currColor != old) {
+        updateTextureColor();
+        m_currColor = old;
+
+        HSVAColor hsvaState = m_currColor.toHSVA();
+        for (auto& channel : m_childChannels) {
+            channel->parentUpdated(hsvaState, time);
+        }
+    }
+}
+
 
 
 void ColorChannel::parentUpdated(HSVAColor parentColor, float time) {

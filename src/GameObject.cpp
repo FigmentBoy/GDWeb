@@ -3,6 +3,7 @@
 #include "utils.hpp"
 #include "Sprite.hpp"
 #include "LevelLayer.hpp"
+#include "Triggers.hpp"
 #include "SpriteFrameCache.hpp"
 #include <fstream>
 
@@ -14,7 +15,7 @@ void GameObject::loadGameObjectsJson() {
 }
 
 void GameObject::setupColorTrigger(int channel) {
-    if (m_properties->copyChannelID != -1) {
+    if (m_properties->copyChannelID > 0) {
         m_layer->m_rawColorChanges[channel].insert({m_position.x, ColorChange::copyColorChange(m_layer->m_colorChannels[m_properties->copyChannelID], m_properties->copyChannelDelta, std::max(0.0f, m_properties->duration), m_properties->toColorBlending)});
     } else {
         m_layer->m_rawColorChanges[channel].insert({m_position.x, std::make_shared<ColorChange>(ColorChannelValue {m_properties->toColor, m_properties->toColorBlending}, std::max(0.0f, m_properties->duration))});
@@ -220,6 +221,18 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 m_properties->delta2.addV = std::stoi(hsvaSplit[4]);
                 break;
             }
+            case 45: 
+                m_properties->fadeIn = std::max(std::stof(value), 0.0f);
+                break;
+            case 46:
+                m_properties->hold = std::max(std::stof(value), 0.0f);
+                break;
+            case 47:
+                m_properties->fadeOut = std::max(std::stof(value), 0.0f);
+                break;
+            case 48:
+                m_properties->pulseType = static_cast<PulseType>(std::stoi(value));
+                break;
             case 49: {
                 std::vector<std::string> hsvaSplit = split(value, "a");
                 m_properties->copyChannelDelta.h = std::stof(hsvaSplit[0]);
@@ -236,15 +249,32 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             case 51:
                 m_properties->targetGroup = std::stoi(value);
                 break;
+            case 52:
+                m_properties->channelType = static_cast<PulseChannel>(std::stoi(value));
+                break;
+            case 56:
+                m_properties->activateGroup = std::stoi(value);
+                break;
             case 57:
-                std::vector<std::string> groupStrings = split(value, ".");
-                for (auto& groupString : groupStrings) {
-                    int groupID = std::stoi(groupString);
-                    m_properties->m_groups.push_back(layer->m_groups[groupID]);
+                {
+                    std::vector<std::string> groupStrings = split(value, ".");
+                    for (auto& groupString : groupStrings) {
+                        int groupID = std::stoi(groupString);
+                        m_properties->m_groups.push_back(layer->m_groups[groupID]);
+                    }
                 }
+                break;
+            case 58:
+                m_properties->lockPlayerX = std::stoi(value);
+                break;
+            case 62:
+                m_properties->spawnTriggered = std::stoi(value);
                 break;
             case 85:
                 m_properties->rate = std::stof(value);
+                break;
+            case 86:
+                m_properties->pulseExclusive = std::stoi(value);
                 break;
         }
     }
@@ -260,45 +290,62 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     updateModelMatrix();
     m_layer = layer;
 
-    // Trigger Setup
-    // We will go through and change it to be time based after all objects are loaded
-    switch (m_id) {
-        case 29:
-            setupColorTrigger(1000);
-            break;
-        case 30:
-            setupColorTrigger(1001);
-            break;
-        case 105:
-            setupColorTrigger(1004);
-            break;
-        case 899:
-            if (m_properties->targetChannel <= 0) break;
-            setupColorTrigger(m_properties->targetChannel);
-            break;
-        case 901:
-            if (m_properties->targetGroup <= 0) break;
-            layer->m_rawPositionChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PositionChange>(PositionValue {m_properties->movePosition}, std::max(0.0f, m_properties->duration), m_properties->function, m_properties->rate));
-            break;
-        case 1007:
-            if (m_properties->targetGroup < 0) break;
-            layer->m_rawAlphaChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<AlphaChange>(AlphaValue {m_properties->opacity}, std::max(0.0f, m_properties->duration))});
-            break;
-        case 200:
-            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {251.16f})});
-            break;
-        case 201:
-            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {311.58f})});
-            break;
-        case 202:
-            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {387.42f})});
-            break;
-        case 203:
-            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {468.0f})});
-            break;
-        case 1334:
-            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {576.0f})});
-            break;
+    if (!m_properties->spawnTriggered) {
+        // Trigger Setup
+        // We will go through and change it to be time based after all objects are loaded
+        switch (m_id) {
+            case 29:
+                setupColorTrigger(1000);
+                break;
+            case 30:
+                setupColorTrigger(1001);
+                break;
+            case 105:
+                setupColorTrigger(1004);
+                break;
+            case 899:
+                if (m_properties->targetChannel <= 0) break;
+                setupColorTrigger(m_properties->targetChannel);
+                break;
+            case 901:
+                if (m_properties->targetGroup <= 0) break;
+                layer->m_rawPositionChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PositionChange>(PositionValue {m_properties->movePosition}, std::max(0.0f, m_properties->duration), m_properties->function, m_properties->rate, m_position.x, m_properties->lockPlayerX, layer));
+                break;
+            case 1006:
+                if (m_properties->targetChannel < 0 || m_properties->channelType == PulseChannel::Group) break; // Groups hurt my brain
+                layer->m_rawPulseChanges[m_properties->targetChannel][m_position.x].push_back(std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, layer->m_colorChannels[m_properties->copyChannelID > 0 ? m_properties->copyChannelID : m_properties->targetChannel], m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut));
+                break;
+            case 1007:
+                if (m_properties->targetGroup < 0) break;
+                layer->m_rawAlphaChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<AlphaChange>(AlphaValue {m_properties->opacity}, std::max(0.0f, m_properties->duration))});
+                break;
+            case 1616:
+                layer->m_stopTriggerLocations[m_properties->targetGroup].push_back(m_position.x);
+                break;
+            case 1049:
+                layer->m_rawToggleChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<ToggleChange>(ToggleValue {m_properties->activateGroup}, std::max(0.0f, m_properties->duration))});
+                break;
+            case 200:
+                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {251.16f})});
+                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 251.16f})});
+                break;
+            case 201:
+                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {311.58f})});
+                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 311.58f})});
+                break;
+            case 202:
+                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {387.42f})});
+                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 387.42f})});
+                break;
+            case 203:
+                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {468.0f})});
+                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 468.0f})});
+                break;
+            case 1334:
+                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {576.0f})});
+                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 576.0f})});
+                break;
+        }
     }
 
     if (!gameObjectJson.contains("texture")) return;
@@ -312,10 +359,15 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
         std::swap(m_properties->delta1, m_properties->delta2);
     }
 
+    if (m_colorChannel2 == 1012) m_colorChannel2 = -m_colorChannel1;
+
     std::string texture = gameObjectJson["texture"];
 
     auto frame = SpriteFrameCache::get()->getSpriteFrameByName(texture);
-    if (!frame) return;
+    if (!frame) {
+        m_id = -1;
+        return;
+    };
     
     std::shared_ptr<Sprite> sprite = std::make_shared<Sprite>(frame);
     addChild(sprite);
