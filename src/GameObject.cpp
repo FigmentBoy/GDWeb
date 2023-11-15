@@ -286,8 +286,6 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
 
     m_originalPosition = m_position;
     m_groupGroupIndex = GroupGroup::getGroupGroupIndex(m_properties->m_groups);
-
-    updateModelMatrix();
     m_layer = layer;
 
     if (!m_properties->spawnTriggered) {
@@ -313,7 +311,7 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 break;
             case 1006:
                 if (m_properties->targetChannel < 0 || m_properties->channelType == PulseChannel::Group) break; // Groups hurt my brain
-                layer->m_rawPulseChanges[m_properties->targetChannel][m_position.x].push_back(std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, layer->m_colorChannels[m_properties->copyChannelID > 0 ? m_properties->copyChannelID : m_properties->targetChannel], m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut));
+                layer->m_rawPulseChanges[m_properties->targetChannel][m_position.x].push_back(std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, layer->m_colorChannels[m_properties->copyChannelID > 0 ? m_properties->copyChannelID : m_properties->targetChannel], m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut, m_position.x));
                 break;
             case 1007:
                 if (m_properties->targetGroup < 0) break;
@@ -398,8 +396,6 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     }
 
     sprite->m_groupGroupIndex = m_groupGroupIndex;
-    sprite->updateModelMatrix();
-
     sprite->m_batchZLayer = m_zLayer;
     sprite->m_zOrder = m_zOrder; // Only for the first sprite :)
 
@@ -462,7 +458,6 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     
     parent->addChild(sprite);
     sprite->m_groupGroupIndex = m_groupGroupIndex;
-    sprite->updateModelMatrix();
     m_sprites.push_back(sprite);
 
     sprite->m_objectIndex = m_index;

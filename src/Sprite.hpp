@@ -31,6 +31,7 @@ public:
     std::unique_ptr<VAO> m_vao;
     std::unique_ptr<VBO> m_vbo;
     std::unique_ptr<EBO> m_ebo;
+    bool m_setup = false;
     
     GLfloat m_verticies[44];
     GLuint m_indicies[6] = {

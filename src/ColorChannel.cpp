@@ -2,6 +2,8 @@
 #include "Triggers.hpp"
 
 void ColorChannel::updateTextureColor() {
+    m_textureColor = m_currColor;
+
     GLubyte data[4] = {
         static_cast<GLubyte>(m_currColor.r * 255), 
         static_cast<GLubyte>(m_currColor.g * 255), 
@@ -28,8 +30,17 @@ void ColorChannel::updateTextureBlending() {
 }
 
 RGBAColor ColorChannel::valueFor(float time) {
-    if (!m_colorTriggers) return m_currColor;
-    return m_colorTriggers->valueFor(time);
+    RGBAColor res = m_baseColor;
+
+    if (m_colorTriggers) {
+        res = m_colorTriggers->valueFor(time);
+    }
+
+    if (m_pulseTriggers) {
+        res = PulseChange::apply(res, m_pulseTriggers->valueFor(time));
+    }
+
+    return res;
 }
 
 void ColorChannel::updateColor(float time) {
@@ -47,12 +58,11 @@ void ColorChannel::updateColor(float time) {
         m_batcher->m_dirty = true;
     }
 
-    RGBAColor state = (RGBAColor) res;
-    if (oldColor != state) {
-        m_currColor = state;
+    m_currColor = static_cast<RGBAColor>(res);
+    if (m_currColor != m_textureColor) {
         updateTextureColor();
 
-        HSVAColor hsvaState = state.toHSVA();
+        HSVAColor hsvaState = m_currColor.toHSVA();
         for (auto& channel : m_childChannels) {
             channel->parentUpdated(hsvaState, time);
         }
@@ -64,11 +74,9 @@ void ColorChannel::updatePulse(float time) {
 
     PulseValue res = m_pulseTriggers->valueFor(time);
 
-    auto old = m_currColor;
     m_currColor = PulseChange::apply(m_currColor, res);
-    if (m_currColor != old) {
+    if (m_currColor != m_textureColor) {
         updateTextureColor();
-        m_currColor = old;
 
         HSVAColor hsvaState = m_currColor.toHSVA();
         for (auto& channel : m_childChannels) {

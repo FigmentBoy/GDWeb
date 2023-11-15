@@ -8,21 +8,6 @@
 #include <algorithm>
 #include <iostream>
 
-Batcher::Batcher() {
-    m_vao = std::make_unique<VAO>();
-    m_vao->bind();
-    
-    m_vbo = std::make_unique<VBO>();
-    m_ebo = std::make_unique<EBO>();
-
-    m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)0);
-	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
-}
-
 void Batcher::addBatchSprite(std::shared_ptr<Sprite> sprite) {
     if (sprite->m_currentBatcher == this) return;
     sprite->removeFromBatcher();
@@ -119,6 +104,23 @@ void Batcher::setData() {
 }
 
 void Batcher::update(float dt) {
+    if (!m_setup) {
+        m_setup = true;
+
+        m_vao = std::make_unique<VAO>();
+        m_vao->bind();
+        
+        m_vbo = std::make_unique<VBO>();
+        m_ebo = std::make_unique<EBO>();
+
+        m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)0);
+        m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
+    }
+
     if (m_dirty) Node::update(dt);
     setData();
 }

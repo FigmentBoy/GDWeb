@@ -14,6 +14,8 @@
 #include <string>
 #include <map>
 
+class LoadingLayer;
+
 class LevelLayer : public Node {
 public:
     std::unique_ptr<Level> m_level;
@@ -58,7 +60,8 @@ public:
     int m_backgroundIndex;
     float m_prevX = -1000.f;
 
-    LevelLayer(Level* level);
+    LevelLayer(Level* level, LoadingLayer* loadingLayer=nullptr);
+    LoadingLayer* m_loadingLayer = nullptr;
 
     float timeForX(float x);
     float xForTime(float time);
@@ -73,7 +76,8 @@ public:
     void draw();
     
     void updateTriggers(float time);
-
+    bool m_setup = false;
+    
     void onMouseClick(int button, int action, int mods);
     void onMouseScroll(double xoffset, double yoffset);
 };

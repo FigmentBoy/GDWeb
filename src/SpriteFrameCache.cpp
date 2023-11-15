@@ -6,50 +6,35 @@
 
 #include <thread>
 
-void SpriteFrameCache::loadSprite(std::string path, LoadingLayer* loadingLayer) {
+void SpriteFrameCache::loadSprite(std::string path, GLenum slot, LoadingLayer* loadingLayer) {
     std::shared_ptr<Texture> texture;
 
     if (loadingLayer) {
-        Texture::getImageData((path + "-uhd.png").c_str(), loadingLayer);
-        loadingLayer->m_spriteSlot = GL_TEXTURE0;
-        loadingLayer->m_hasNewImage = true;
-        while (loadingLayer->m_hasNewImage) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        };
-        texture = std::shared_ptr<Texture>(loadingLayer->m_texture);
+        texture = Texture::queueImageTexture((path + "-uhd.png").c_str(), GL_TEXTURE_2D, slot, GL_RGBA, GL_UNSIGNED_BYTE, loadingLayer);
     } else {
-        texture = std::make_shared<Texture>((path + "-uhd.png").c_str(), GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+        texture = std::make_shared<Texture>((path + "-uhd.png").c_str(), GL_TEXTURE_2D, slot, GL_RGBA, GL_UNSIGNED_BYTE);
     }
 
-    std::cout << texture->m_id << std::endl;
-    std::cout << texture->m_slot << " SUPPOSED TO BE " << GL_TEXTURE0 << std::endl;
-    
     std::shared_ptr<SpriteFrame> spriteFrame = std::make_shared<SpriteFrame>(texture, texture->m_size);
 
-    std::cout << path.substr(path.rfind("/") + 1) + ".png" << std::endl;
+    m_mutex.lock();
 
     if (path.rfind("/") != std::string::npos)
         m_spriteFrames[path.substr(path.rfind("/") + 1) + ".png"] = spriteFrame;
     else
         m_spriteFrames[path + ".png"] = spriteFrame;
+
+    m_mutex.unlock();
 }
 
-void SpriteFrameCache::loadSpriteFramesFromPlist(std::string path, LoadingLayer* loadingLayer) {
+void SpriteFrameCache::loadSpriteFramesFromPlist(std::string path, GLenum slot, LoadingLayer* loadingLayer) {
     std::shared_ptr<Texture> texture;
-    if (loadingLayer) {
-        Texture::getImageData((path + "-uhd.png").c_str(), loadingLayer);
-        loadingLayer->m_spriteSlot = Texture::m_nextSlot;
-        loadingLayer->m_hasNewImage = true;
-        while (loadingLayer->m_hasNewImage) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        };
-        texture = std::shared_ptr<Texture>(loadingLayer->m_texture);
-    } else {
-        texture = std::make_shared<Texture>((path + "-uhd.png").c_str(), GL_TEXTURE_2D, Texture::m_nextSlot, GL_RGBA, GL_UNSIGNED_BYTE);
-    }
 
-    std::cout << texture->m_id << std::endl;
-    std::cout << texture->m_slot << " SUPPOSED TO BE " << Texture::m_nextSlot << std::endl;
+    if (loadingLayer) {
+        texture = Texture::queueImageTexture((path + "-uhd.png").c_str(), GL_TEXTURE_2D, slot, GL_RGBA, GL_UNSIGNED_BYTE, loadingLayer);
+    } else {
+        texture = std::make_shared<Texture>((path + "-uhd.png").c_str(), GL_TEXTURE_2D, slot, GL_RGBA, GL_UNSIGNED_BYTE);
+    }
 
     std::map<std::string, boost::any> dict;
     Plist::readPlist((path + "-uhd.plist").c_str(), dict);
@@ -108,10 +93,10 @@ void SpriteFrameCache::loadSpriteFramesFromPlist(std::string path, LoadingLayer*
         spriteFrame->m_size /= 4.f;
         spriteFrame->m_offset /= 4.f;
 
+        m_mutex.lock();
         m_spriteFrames[frameName] = spriteFrame;
+        m_mutex.unlock();
     }
-    std::cout << "Added " + std::to_string(frames.size()) + " sprites from " + path << std::endl;
-    Texture::m_nextSlot++;
 }
 
 std::shared_ptr<SpriteFrame> SpriteFrameCache::getSpriteFrameByName(std::string name) {

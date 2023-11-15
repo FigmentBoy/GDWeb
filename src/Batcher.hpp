@@ -25,9 +25,8 @@ public:
     std::unique_ptr<EBO> m_ebo;
 
     std::vector<std::shared_ptr<Sprite>> m_sprites; // We want no ownership over these
+    bool m_setup = false;
     bool m_sorted = false;
-
-    Batcher();
 
     virtual void addBatchSprite(std::shared_ptr<Sprite>);
     virtual void removeBatchSprite(std::shared_ptr<Sprite>);

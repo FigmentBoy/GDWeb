@@ -32,6 +32,7 @@ class ColorChannel {
 public:
     std::shared_ptr<Texture> m_colorTexture;
 
+    RGBAColor m_textureColor;
     RGBAColor m_currColor;
     bool m_blending;
 

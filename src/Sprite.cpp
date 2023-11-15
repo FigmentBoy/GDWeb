@@ -15,28 +15,32 @@ Sprite::Sprite(std::shared_ptr<SpriteFrame> spriteFrame, RGBAColor color) {
     m_scale = {1.0f, 1.0f};
 
     m_anchorPoint = (Point {0.5f, 0.5f}) * m_size;
-
-    m_vao = std::make_unique<VAO>();
-    m_vao->bind();
-
-    m_vbo = std::make_unique<VBO>();
-    m_ebo = std::make_unique<EBO>();
-
-    m_ebo->setIndices(m_indicies, sizeof(m_indicies));
-
-	m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)0);
-	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
-
-    m_vao->unbind();
-    m_vbo->unbind();
-    m_ebo->unbind();
 }
 
 void Sprite::update(float delta) {
+    if (!m_setup && !m_currentBatcher) {
+        m_setup = true;
+
+        m_vao = std::make_unique<VAO>();
+        m_vao->bind();
+
+        m_vbo = std::make_unique<VBO>();
+        m_ebo = std::make_unique<EBO>();
+
+        m_ebo->setIndices(m_indicies, sizeof(m_indicies));
+
+        m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)0);
+        m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
+
+        m_vao->unbind();
+        m_vbo->unbind();
+        m_ebo->unbind();
+    }
+    
     Node::update(delta);
     updateVertices();
 }

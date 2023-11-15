@@ -15,12 +15,16 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-LevelLayer::LevelLayer(Level* level) : m_level(level) {
+LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level), m_loadingLayer(loadingLayer) {
     Director::get()->m_camera->m_position = {-512, -128};
     m_prevMousePos = Director::get()->m_mousePosition;
 
+    if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.05f;
     parseLevelString();
+    if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.1f;
+
     parseLevelProperties();
+    if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.2f;
 
     m_levelBatcher = std::make_shared<Batcher>();
     m_levelBatcher->m_zOrder = 0.0f;
@@ -28,15 +32,27 @@ LevelLayer::LevelLayer(Level* level) : m_level(level) {
 
     setupObjects();
 
-    auto groupGroupTexture = std::make_shared<Texture>(2, GroupGroup::m_groupGroups.size(), GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA32F, GL_FLOAT);
+    std::shared_ptr<Texture> groupGroupTexture;
+
+    if (m_loadingLayer) {
+        groupGroupTexture = Texture::queueDataTexture(2, GroupGroup::m_groupGroups.size(), GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA32F, GL_FLOAT, "groupGroupTexture", m_loadingLayer);
+    } else {
+        groupGroupTexture = std::make_shared<Texture>(2, GroupGroup::m_groupGroups.size(), GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA32F, GL_FLOAT);
+        groupGroupTexture->setUniforms("groupGroupTexture");
+    }
+
     for (auto& groupGroup : GroupGroup::m_groupGroups) {
         groupGroup->m_groupTexture = groupGroupTexture;
     }
-    groupGroupTexture->setUniforms("groupGroupTexture");
 
     std::cout << "Setting up speed changes" << std::endl;
     m_speedChanges->setup();
+    
+    if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.95f;
+    
     setupTriggers();
+
+    if (m_loadingLayer) m_loadingLayer->m_percentDone = 1.0f;
 
     auto backgroundSprite = new BackgroundSprite(m_backgroundIndex, this);
     backgroundSprite->m_zOrder = -1.0f;
@@ -86,12 +102,6 @@ void LevelLayer::setupTriggers() {
     }
     m_rawPulseChanges.clear();
 
-    for (auto& colorChannel : m_colorChannels) {
-        colorChannel->updateTextureColor();
-        colorChannel->updateTextureBlending();
-        colorChannel->updateColor(currTime);
-    }
-
     std::cout << "compiling alpha triggers" << std::endl;
     for (auto& [group, changes] : m_rawAlphaChanges) {
         m_groups[group]->m_alphaTriggers = std::make_unique<GameEffect<AlphaChange>>(AlphaValue {1.0f});
@@ -102,14 +112,6 @@ void LevelLayer::setupTriggers() {
         m_groupsWithAlphaChanges.push_back(group);
     }
     m_rawAlphaChanges.clear();
-
-    for (auto& group : m_groups) {
-        group->updateAlphaTriggers(currTime);
-    }
-
-    for (auto& groupGroup : GroupGroup::m_groupGroups) {
-        groupGroup->updateAlpha();
-    }
 
     std::cout << "compiling move triggers" << std::endl;
     for (auto& [group, changes] : m_rawPositionChanges) {
@@ -127,10 +129,6 @@ void LevelLayer::setupTriggers() {
     }
     m_rawPositionChanges.clear();
 
-    for (auto& group : m_groups) {
-        group->updatePositionChanges(currTime);
-    }
-
     std::cout << "Compiling toggle triggers" << std::endl;
     for (auto& [group, toggles] : m_rawToggleChanges) {
         m_groups[group]->m_toggleChanges = std::make_unique<GameEffect<ToggleChange>>(ToggleValue {true});
@@ -141,10 +139,6 @@ void LevelLayer::setupTriggers() {
         m_groupsWithToggleChanges.push_back(group);
     }
     m_rawToggleChanges.clear();
-
-    for (auto& group : m_groups) {
-        group->updateToggleChanges(currTime);
-    }
 
     std::cout << "Compiling stop triggers" << std::endl;
     for (auto& [group, stops] : m_stopTriggerLocations) {
@@ -272,7 +266,14 @@ void LevelLayer::parseLevelProperties() {
         m_groups[i]->m_index = i;
     }
 
-    auto colorTexture = std::make_shared<Texture>(2, 1013, GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA, GL_UNSIGNED_BYTE);
+    std::shared_ptr<Texture> colorTexture;
+
+    if (m_loadingLayer) {
+        colorTexture = Texture::queueDataTexture(2, 1013, GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA, GL_UNSIGNED_BYTE, "colorTexture", m_loadingLayer);
+    } else {
+        colorTexture = std::make_shared<Texture>(2, 1013, GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA, GL_UNSIGNED_BYTE);
+        colorTexture->setUniforms("colorTexture");
+    }
 
     for (int i = 0; i < 1013; i++) {
         m_colorChannels.push_back(std::make_shared<ColorChannel>());
@@ -280,8 +281,6 @@ void LevelLayer::parseLevelProperties() {
         m_colorChannels[i]->m_colorTexture = colorTexture;
         m_colorChannels[i]->m_batcher = m_levelBatcher;
     }
-
-    colorTexture->setUniforms("colorTexture");
 
     for (auto& [key, value] : m_levelProperties) {
         if (key == "kA4") {
@@ -365,6 +364,8 @@ void LevelLayer::setupObjects() {
         
         if (gameObj->m_id == -1) delete gameObj;
         else m_levelBatcher->addChild(gameObj);
+
+        if (m_loadingLayer) m_loadingLayer->m_percentDone += 0.7f / m_parsedLevelString.size();
     }
 }
 
@@ -409,6 +410,30 @@ void LevelLayer::update(float delta) {
     Node::update(delta);
 
     auto camera = Director::get()->m_camera;
+    float currX = camera->getPlayerX();
+    float currTime = timeForX(currX);
+
+    if (!m_setup) {
+        m_setup = true;
+        for (auto& colorChannel : m_colorChannels) {
+            colorChannel->updateTextureColor();
+            colorChannel->updateTextureBlending();
+            colorChannel->updateColor(currTime);
+        }
+
+        for (auto& group : m_groups) {
+            group->updateAlphaTriggers(currTime);
+            group->updatePositionChanges(currTime);
+            group->updateToggleChanges(currTime);
+        }
+
+        for (auto& groupGroup : GroupGroup::m_groupGroups) {
+            groupGroup->updateAlpha();
+            groupGroup->updatePosition();
+        }
+
+        m_prevX = currX;
+    }
 
     if (m_autoScroll) {
         float speed = m_speedChanges->mostRecent(camera->getPlayerX()).changer->m_toValue.val;
@@ -423,7 +448,6 @@ void LevelLayer::update(float delta) {
         if (camera->m_position.y < -128) camera->m_position.y = -128;
     }
 
-    float currX = camera->getPlayerX();
     if (m_prevX != currX) {
         updateTriggers(timeForX(currX));
         m_prevX = currX;

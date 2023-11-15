@@ -6,6 +6,24 @@
 #include <unordered_map>
 
 class LoadingLayer;
+class Texture;
+
+struct UncommittedTexture {
+    unsigned char* imageData; int width; int height; GLenum texType; GLenum slot; GLenum format; GLenum pixelType;
+
+    std::shared_ptr<Texture> m_texture = nullptr;
+    bool m_finished = false;
+};
+
+struct UncommittedDataTexture {
+    int width; int height; GLenum texType; GLenum slot; GLenum format; GLenum pixelType;
+    const char* uniform;
+
+    std::shared_ptr<Texture> m_texture = nullptr;
+    bool m_finished = false;
+};
+
+class LoadingLayer;
 
 class Texture {
 public:
@@ -18,11 +36,13 @@ public:
 
     Size m_size;
     
-    static void getImageData(const char* image, LoadingLayer* layer);
+    Texture(const char* path, GLenum texType, GLenum slot, GLenum format, GLenum pixelType);
     Texture(unsigned char* imageData, Size imageSize, GLenum texType, GLenum slot, GLenum format, GLenum pixelType);
-    Texture(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType);
+    static std::shared_ptr<Texture> queueImageTexture(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType, LoadingLayer* layer);
 
     Texture(int width, int height, GLenum texType, GLenum slot, GLenum format, GLenum pixelType);
+    static std::shared_ptr<Texture> queueDataTexture(int width, int height, GLenum texType, GLenum slot, GLenum format, GLenum pixelType, const char* uniform, LoadingLayer* loadingLayer);
+
     void setSubData(const GLvoid* imageData, Size imageSize, Point offset, GLenum type);
 
     ~Texture() { release(); }

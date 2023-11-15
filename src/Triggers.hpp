@@ -84,7 +84,7 @@ public:
             RGBAColor toCopy = m_channelToCopy->valueFor(m_position + x);
 
             if (x >= m_duration && m_lastCalculated == toCopy) return {m_cachedCopy, m_toValue.m_blending};
-            m_lastCalculated = m_channelToCopy->m_currColor;
+            m_lastCalculated = toCopy;
             
             auto color = toCopy.toHSVA();
             color.h += m_inheritedDelta.h;
@@ -101,6 +101,7 @@ public:
             color.v = std::clamp(color.v, 0.0f, 1.0f);
 
             m_cachedCopy = color.toRGBA();
+            
             if (m_duration == 0.0f) return {m_cachedCopy, m_toValue.m_blending};
             return {RGBAColor::lerp(m_fromValue, m_cachedCopy, std::min(x / m_duration, 1.0f)), m_toValue.m_blending};
         }
@@ -191,7 +192,7 @@ $CreateCompoundTypeChanger(PulseValue, Pulse) {
 public:
     using PulseChangeBase::PulseChangeBase;
 
-    CompoundTypeChanger<PulseValue>(bool exclusive, PulseType hsvColorType, RGBAColor toRGB, std::shared_ptr<ColorChannel> channelToCopy, HSVAColor toHSV, float fadeIn, float hold, float fadeOut)  {
+    CompoundTypeChanger<PulseValue>(bool exclusive, PulseType hsvColorType, RGBAColor toRGB, std::shared_ptr<ColorChannel> channelToCopy, HSVAColor toHSV, float fadeIn, float hold, float fadeOut, float position)  {
         this->m_exclusive = exclusive;
         this->hsvColorType = hsvColorType;
         this->toRGB = toRGB;
@@ -202,6 +203,7 @@ public:
         this->fadeOut = fadeOut;
         this->m_duration = this->fadeIn + this->hold + this->fadeOut;
         this->m_cacheAfter = this->fadeIn + this->hold + this->fadeOut;
+        this->m_position = position;
     };
 
     bool m_exclusive = false;
@@ -210,6 +212,8 @@ public:
     HSVAColor toHSV;
     RGBAColor toRGB;
     PulseType hsvColorType;
+    
+    float m_position;
 
     float fadeIn;
     float hold;
@@ -241,9 +245,10 @@ public:
                     break;
                 }
                 case PulseType::HSV: {
-                    auto copyColor = channelToCopy->m_currColor;
+                    auto copyColor = channelToCopy->valueFor(m_position + x);
                     if (copyColor != prevCopyColor) {
-                        auto color = channelToCopy->m_currColor.toHSVA();
+                        auto color = copyColor.toHSVA();
+                        prevCopyColor = copyColor;
 
                         color.h += toHSV.h * percent;
                         color.h = fmod(color.h + 360.0f, 360.0f);

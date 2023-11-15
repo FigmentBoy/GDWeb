@@ -7,7 +7,8 @@
 #include "LoadingLayer.hpp"
 
 class SpriteFrameCache {
-public:    
+public:
+    std::mutex m_mutex;
     std::unordered_map<std::string, std::shared_ptr<SpriteFrame>> m_spriteFrames;
 
     static SpriteFrameCache* get() {
@@ -15,8 +16,8 @@ public:
         return sharedCache;
     }
 
-    void loadSprite(std::string path, LoadingLayer* loadingLayer=nullptr);
-    void loadSpriteFramesFromPlist(std::string plistPath, LoadingLayer* loadingLayer=nullptr);
+    void loadSprite(std::string path, GLenum slot, LoadingLayer* loadingLayer=nullptr);
+    void loadSpriteFramesFromPlist(std::string plistPath, GLenum slot, LoadingLayer* loadingLayer=nullptr);
     
     std::shared_ptr<SpriteFrame> getSpriteFrameByName(std::string name);
 

@@ -1,20 +1,22 @@
 #include "Texture.hpp"
-
+#include <thread>
 #include "Shader.hpp"
 
 #include "Director.hpp"
 #include "stb_image.h"
 #include "LoadingLayer.hpp"
 
-
 #include <stdio.h>
 #include <string>
 #include <iostream>
 
-void Texture::getImageData(const char* image, LoadingLayer* layer) {
+Texture::Texture(const char* path, GLenum texType, GLenum slot, GLenum format, GLenum pixelType) {
     int width, height, numColCh;
-    layer->m_imageData = stbi_load(image, &width, &height, &numColCh, 4);
-    layer->m_imageSize = {width, height};
+    unsigned char* data = stbi_load(path, &width, &height, &numColCh, 4);
+
+    Texture(data, Size {width, height}, texType, slot, format, pixelType);
+
+    stbi_image_free(data);
 }
 
 Texture::Texture(unsigned char* imageData, Size imageSize, GLenum texType, GLenum slot, GLenum format, GLenum pixelType) {
@@ -35,33 +37,25 @@ Texture::Texture(unsigned char* imageData, Size imageSize, GLenum texType, GLenu
 
     glTexImage2D(texType, 0, GL_RGBA, m_size.width, m_size.height, 0, format, pixelType, imageData);
     glGenerateMipmap(texType);
-
-    stbi_image_free(imageData);
 }
 
-Texture::Texture(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType) {
-    m_slot = slot;
-    m_type = texType;
-    m_format = format;
+std::shared_ptr<Texture> Texture::queueImageTexture(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType, LoadingLayer* layer) {
+    auto uncommitted = std::make_shared<UncommittedTexture>(nullptr, 0, 0, texType, slot, format, pixelType);
 
     int width, height, numColCh;
-    unsigned char* bytes = stbi_load(image, &width, &height, &numColCh, 4);
+    unsigned char* data = stbi_load(image, &uncommitted->width, &uncommitted->height, &numColCh, 4);
+    uncommitted->imageData = data;
 
-    m_size = {width, height};
-    
-    glGenTextures(1, &m_id);
-    bind();
+    layer->m_mutex.lock();
+    layer->m_uncommittedTextures.push_back(uncommitted);
+    layer->m_mutex.unlock();
 
-    glTexParameteri(texType, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(texType, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    while (!uncommitted->m_finished) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    };
 
-    glTexParameteri(texType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(texType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glTexImage2D(texType, 0, GL_RGBA, m_size.width, m_size.height, 0, format, pixelType, bytes);
-    glGenerateMipmap(texType);
-
-    stbi_image_free(bytes);
+    stbi_image_free(uncommitted->imageData);
+    return uncommitted->m_texture;
 }
 
 Texture::Texture(int width, int height, GLenum texType, GLenum slot, GLenum format, GLenum pixelType) {
@@ -81,6 +75,20 @@ Texture::Texture(int width, int height, GLenum texType, GLenum slot, GLenum form
     glTexParameteri(texType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glTexImage2D(texType, 0, format, m_size.width, m_size.height, 0, GL_RGBA, pixelType, NULL);
+}
+
+std::shared_ptr<Texture> Texture::queueDataTexture(int width, int height, GLenum texType, GLenum slot, GLenum format, GLenum pixelType, const char* uniform, LoadingLayer* layer) {
+    auto uncommitted = std::make_shared<UncommittedDataTexture>(width, height, texType, slot, format, pixelType, uniform);
+    
+    layer->m_mutex.lock();
+    layer->m_uncommittedDataTextures.push_back(uncommitted);
+    layer->m_mutex.unlock();
+
+    while (!uncommitted->m_finished) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    };
+
+    return uncommitted->m_texture;
 }
 
 void Texture::setSubData(const GLvoid* imageData, Size imageSize, Point offset, GLenum type) {
