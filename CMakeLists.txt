@@ -13,6 +13,7 @@ file(GLOB SOURCES
     "include/imgui/*.cpp"
     "include/imgui/backends/imgui_impl_glfw.cpp"
     "include/imgui/backends/imgui_impl_opengl3.cpp"
+    "include/easing-functions/src/*.cpp"
 )
 
 if(EMSCRIPTEN)
@@ -67,6 +68,7 @@ target_include_directories(WebEditor PRIVATE
     include/libdeflate
     include/imgui
     include/glfw/include
+    include/easing-functions/src
 )
 
 add_subdirectory(include/json)

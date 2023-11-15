@@ -13,15 +13,26 @@ void GameObject::loadGameObjectsJson() {
     m_gameObjectsJson = json::parse(i);
 }
 
+void GameObject::setupColorTrigger(int channel) {
+    if (m_properties->copyChannelID != -1) {
+        m_layer->m_rawColorChanges[channel].insert({m_position.x, ColorChange::copyColorChange(m_layer->m_colorChannels[m_properties->copyChannelID], m_properties->copyChannelDelta, std::max(0.0f, m_properties->duration), m_properties->toColorBlending)});
+    } else {
+        m_layer->m_rawColorChanges[channel].insert({m_position.x, std::make_shared<ColorChange>(ColorChannelValue {m_properties->toColor, m_properties->toColorBlending}, std::max(0.0f, m_properties->duration))});
+    }
+}
+
 GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, LevelLayer* layer) {
     if (m_gameObjectsJson.empty()) {
         loadGameObjectsJson();
     }
-    std::unique_ptr<GameObjectProperties> properties = std::make_unique<GameObjectProperties>();
+    m_properties = std::make_unique<GameObjectProperties>();
 
     m_index = m_currIndex++;
 
     m_id = id;
+    bool hasZOrder = false;
+    bool hasZLayer = false;
+
     for (auto& [key, value] : obj) {
         switch(std::stoi(key)) {
             case 1:
@@ -43,22 +54,22 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 m_rotation = std::stof(value);
                 break;
             case 7:
-                properties->toColor.r = std::stoi(value) / 255.f;
+                m_properties->toColor.r = std::stoi(value) / 255.f;
                 break;
             case 8:
-                properties->toColor.g = std::stoi(value) / 255.f;
+                m_properties->toColor.g = std::stoi(value) / 255.f;
                 break;
             case 9:
-                properties->toColor.b = std::stoi(value) / 255.f;
+                m_properties->toColor.b = std::stoi(value) / 255.f;
                 break;
             case 10:
-                properties->duration = std::stof(value);
+                m_properties->duration = std::stof(value);
                 break;
             case 17:
-                properties->toColorBlending = std::stoi(value);
+                m_properties->toColorBlending = std::stoi(value);
                 break;
             case 19:
-                properties->usingOldColor = true;
+                m_properties->usingOldColor = true;
                 switch (std::stoi(value)) {
                     case 1:
                         m_colorChannel1 = 1005;
@@ -95,104 +106,211 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 }
                 break;
             case 21:
-                if (!properties->usingOldColor) m_colorChannel1 = std::stoi(value);
+                if (!m_properties->usingOldColor) m_colorChannel1 = std::stoi(value);
                 break;
             case 22:
-                if (!properties->usingOldColor) m_colorChannel2 = std::stoi(value);
+                if (!m_properties->usingOldColor) m_colorChannel2 = std::stoi(value);
                 break;
             case 23:
-                properties->targetChannel = std::stoi(value);
+                m_properties->targetChannel = std::stoi(value);
                 break;
             case 24:
                 m_zLayer = std::stoi(value);
+                hasZLayer = true;
                 break;
             case 25:
                 m_zOrder = std::stoi(value);
+                hasZOrder = true;
                 break;
             case 28:
-                properties->movePosition.x = std::stof(value);
+                m_properties->movePosition.x = std::stof(value);
                 break;
             case 29:
-                properties->movePosition.y = std::stof(value);
+                m_properties->movePosition.y = std::stof(value);
+                break;
+            case 30:
+                switch (std::stoi(value)) {
+                    case 1:
+                        m_properties->function = getEasingFunction(EaseInOut);
+                        break;
+                    case 2:
+                        m_properties->function = getEasingFunction(EaseIn);
+                        break;
+                    case 3:
+                        m_properties->function = getEasingFunction(EaseOut);
+                        break;
+                    case 4:
+                        m_properties->function = getEasingFunction(EaseInOutElastic);
+                        break;
+                    case 5:
+                        m_properties->function = getEasingFunction(EaseInElastic);
+                        break;
+                    case 6:
+                        m_properties->function = getEasingFunction(EaseOutElastic);
+                        break;
+                    case 7:
+                        m_properties->function = getEasingFunction(EaseInOutBounce);
+                        break;
+                    case 8:
+                        m_properties->function = getEasingFunction(EaseInBounce);
+                        break;
+                    case 9:
+                        m_properties->function = getEasingFunction(EaseOutBounce);
+                        break;
+                    case 10:
+                        m_properties->function = getEasingFunction(EaseInOutExpo);
+                        break;
+                    case 11:
+                        m_properties->function = getEasingFunction(EaseInExpo);
+                        break;
+                    case 12:
+                        m_properties->function = getEasingFunction(EaseOutExpo);
+                        break;
+                    case 13:
+                        m_properties->function = getEasingFunction(EaseInOutSine);
+                        break;
+                    case 14:
+                        m_properties->function = getEasingFunction(EaseInSine);
+                        break;
+                    case 15:
+                        m_properties->function = getEasingFunction(EaseOutSine);
+                        break;
+                    case 16:
+                        m_properties->function = getEasingFunction(EaseInOutBack);
+                        break;
+                    case 17:
+                        m_properties->function = getEasingFunction(EaseInBack);
+                        break;
+                    case 18:
+                        m_properties->function = getEasingFunction(EaseOutBack);
+                        break;
+                }
                 break;
             case 32:
                 m_scale = Point {1, 1} * std::stof(value);
                 break;
             case 35:
-                properties->opacity = std::stof(value);
+                m_properties->opacity = std::stof(value);
                 break;
+            case 41:
+                m_properties->hasDelta1 = true;
+                break;
+            case 42:
+                m_properties->hasDelta2 = true;
+                break;
+            case 43: {
+                std::vector<std::string> hsvaSplit = split(value, "a");
+                m_properties->delta1.h = std::stof(hsvaSplit[0]);
+                m_properties->delta1.s = std::stof(hsvaSplit[1]);
+                m_properties->delta1.v = std::stof(hsvaSplit[2]);
+
+                m_properties->delta1.addS = std::stoi(hsvaSplit[3]);
+                m_properties->delta1.addV = std::stoi(hsvaSplit[4]);
+                
+
+                break;
+            }
+            case 44: {
+                std::vector<std::string> hsvaSplit = split(value, "a");
+                m_properties->delta2.h = std::stof(hsvaSplit[0]);
+                m_properties->delta2.s = std::stof(hsvaSplit[1]);
+                m_properties->delta2.v = std::stof(hsvaSplit[2]);
+
+                m_properties->delta2.addS = std::stoi(hsvaSplit[3]);
+                m_properties->delta2.addV = std::stoi(hsvaSplit[4]);
+                break;
+            }
+            case 49: {
+                std::vector<std::string> hsvaSplit = split(value, "a");
+                m_properties->copyChannelDelta.h = std::stof(hsvaSplit[0]);
+                m_properties->copyChannelDelta.s = std::stof(hsvaSplit[1]);
+                m_properties->copyChannelDelta.v = std::stof(hsvaSplit[2]);
+
+                m_properties->copyChannelDelta.addS = std::stoi(hsvaSplit[3]);
+                m_properties->copyChannelDelta.addV = std::stoi(hsvaSplit[4]);
+                break;
+            }
             case 50:
-                properties->copyChannelID = std::stoi(value);
+                m_properties->copyChannelID = std::stoi(value);
                 break;
             case 51:
-                properties->targetGroup = std::stoi(value);
+                m_properties->targetGroup = std::stoi(value);
                 break;
             case 57:
                 std::vector<std::string> groupStrings = split(value, ".");
                 for (auto& groupString : groupStrings) {
                     int groupID = std::stoi(groupString);
-                    properties->m_groups.push_back(layer->m_groups[groupID]);
+                    m_properties->m_groups.push_back(layer->m_groups[groupID]);
                 }
+                break;
+            case 85:
+                m_properties->rate = std::stof(value);
                 break;
         }
     }
 
+    json gameObjectJson = m_gameObjectsJson[std::to_string(m_id)];
+
+    if (!hasZLayer) m_zLayer = gameObjectJson["default_z_layer"].get<int>();
+    if (!hasZOrder) m_zOrder = gameObjectJson["default_z_order"].get<int>();
+
     m_originalPosition = m_position;
-    m_groupGroupIndex = GroupGroup::getGroupGroupIndex(properties->m_groups);
+    m_groupGroupIndex = GroupGroup::getGroupGroupIndex(m_properties->m_groups);
 
     updateModelMatrix();
+    m_layer = layer;
 
     // Trigger Setup
     // We will go through and change it to be time based after all objects are loaded
     switch (m_id) {
         case 29:
-            layer->m_rawColorChanges[1000].insert({m_position.x, {{properties->toColor, properties->toColorBlending}, std::max(0.0f, properties->duration)}});
+            setupColorTrigger(1000);
             break;
         case 30:
-            layer->m_rawColorChanges[1001].insert({m_position.x, {{properties->toColor, properties->toColorBlending}, std::max(0.0f, properties->duration)}});
+            setupColorTrigger(1001);
             break;
         case 105:
-            layer->m_rawColorChanges[1004].insert({m_position.x, {{properties->toColor, properties->toColorBlending}, std::max(0.0f, properties->duration)}});
+            setupColorTrigger(1004);
             break;
         case 899:
-            if (properties->targetChannel <= 0) break;
-            layer->m_rawColorChanges[properties->targetChannel].insert({m_position.x, {{properties->toColor, properties->toColorBlending}, std::max(0.0f, properties->duration)}});
+            if (m_properties->targetChannel <= 0) break;
+            setupColorTrigger(m_properties->targetChannel);
             break;
         case 901:
-            if (properties->targetGroup <= 0) break;
-            layer->m_rawPositionChanges[properties->targetGroup].insert({m_position.x, {{properties->movePosition}, std::max(0.0f, properties->duration)}});
+            if (m_properties->targetGroup <= 0) break;
+            layer->m_rawPositionChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PositionChange>(PositionValue {m_properties->movePosition}, std::max(0.0f, m_properties->duration), m_properties->function, m_properties->rate));
             break;
         case 1007:
-            if (properties->targetGroup < 0) break;
-            layer->m_rawAlphaChanges[properties->targetGroup].insert({m_position.x, {{properties->opacity}, std::max(0.0f, properties->duration)}});
+            if (m_properties->targetGroup < 0) break;
+            layer->m_rawAlphaChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<AlphaChange>(AlphaValue {m_properties->opacity}, std::max(0.0f, m_properties->duration))});
             break;
         case 200:
-            layer->m_speedChanges->m_changes.insert({m_position.x, {{251.16f}}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {251.16f})});
             break;
         case 201:
-            layer->m_speedChanges->m_changes.insert({m_position.x, {{311.58f}}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {311.58f})});
             break;
         case 202:
-            layer->m_speedChanges->m_changes.insert({m_position.x, {{387.42f}}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {387.42f})});
             break;
         case 203:
-            layer->m_speedChanges->m_changes.insert({m_position.x, {{468.0f}}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {468.0f})});
             break;
         case 1334:
-            layer->m_speedChanges->m_changes.insert({m_position.x, {{576.0f}}});
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {576.0f})});
             break;
     }
 
-    json gameObjectJson = m_gameObjectsJson[std::to_string(m_id)];
     if (!gameObjectJson.contains("texture")) return;
-    
-    if (m_colorChannel1 < 0) m_colorChannel1 = gameObjectJson.contains("default_base_color_channel") ? gameObjectJson["default_base_color_channel"].get<int>() : 0;
+
+    if (m_colorChannel1 < 0) m_colorChannel1 = gameObjectJson.contains("default_base_color_channel") ? gameObjectJson["default_base_color_channel"].get<int>() : 0; 
     if (m_colorChannel2 < 0) m_colorChannel2 = gameObjectJson.contains("default_detail_color_channel") ? gameObjectJson["default_detail_color_channel"].get<int>() : gameObjectJson.contains("default_base_color_channel") ? gameObjectJson["default_base_color_channel"].get<int>() : 0;
 
-    if (gameObjectJson.contains("swap_base_detail") && gameObjectJson["swap_base_detail"].get<bool>()) std::swap(m_colorChannel1, m_colorChannel2);
-
-    if (obj.find("24") == obj.end()) m_zLayer = gameObjectJson["default_z_layer"].get<int>();
-    if (obj.find("25") == obj.end()) m_zOrder = gameObjectJson["default_z_order"].get<int>();
+    if (gameObjectJson.contains("swap_base_detail") && gameObjectJson["swap_base_detail"].get<bool>()) {
+        std::swap(m_colorChannel1, m_colorChannel2);
+        std::swap(m_properties->hasDelta1, m_properties->hasDelta2);
+        std::swap(m_properties->delta1, m_properties->delta2);
+    }
 
     std::string texture = gameObjectJson["texture"];
 
@@ -204,15 +322,26 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     m_sprites.push_back(sprite);
 
     if (layer) {
-        m_layer = layer;
-
         std::string colorType = gameObjectJson.contains("color_type") ? gameObjectJson["color_type"] : "Base";
         if (colorType == "Base") {
             sprite->m_colorChannel = m_colorChannel1;
+            sprite->m_blendingVal = &layer->m_colorChannels[m_colorChannel1]->m_blending;
+
+            if (m_properties->hasDelta1) {
+                sprite->m_hasColorDelta = true;
+                sprite->m_colorDelta = m_properties->delta1;
+            }
         } else if (colorType == "Detail") {
             sprite->m_colorChannel = m_colorChannel2;
+            sprite->m_blendingVal = &layer->m_colorChannels[m_colorChannel2]->m_blending;
+            
+            if (m_properties->hasDelta2) {
+                sprite->m_hasColorDelta = true;
+                sprite->m_colorDelta = m_properties->delta2;
+            }
         } else if (colorType == "Black") {
             sprite->m_colorChannel = 1010;
+            sprite->m_blendingVal = &layer->m_colorChannels[1010]->m_blending;
         }
     }
 
@@ -220,7 +349,7 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     sprite->updateModelMatrix();
 
     sprite->m_batchZLayer = m_zLayer;
-    sprite->m_objectIndex = m_index;
+    sprite->m_zOrder = m_zOrder; // Only for the first sprite :)
 
     json children = gameObjectJson["children"];
     for (auto& child : children) {
@@ -230,6 +359,8 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     if (m_layer) {
         m_layer->m_levelBatcher->addBatchSprite(sprite);
     };
+
+    m_properties.reset();
 }
 
 void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
@@ -248,10 +379,23 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
         std::string colorType = child.contains("color_type") ? child["color_type"] : "Base";
         if (colorType == "Base") {
             sprite->m_colorChannel = m_colorChannel1;
+            sprite->m_blendingVal = &m_layer->m_colorChannels[m_colorChannel1]->m_blending;
+
+            if (m_properties->hasDelta1) {
+                sprite->m_hasColorDelta = true;
+                sprite->m_colorDelta = m_properties->delta1;
+            }
         } else if (colorType == "Detail") {
             sprite->m_colorChannel = m_colorChannel2;
+            sprite->m_blendingVal = &m_layer->m_colorChannels[m_colorChannel2]->m_blending;
+
+            if (m_properties->hasDelta2) {
+                sprite->m_hasColorDelta = true;
+                sprite->m_colorDelta = m_properties->delta2;
+            }
         } else if (colorType == "Black") {
             sprite->m_colorChannel = 1010;
+            sprite->m_blendingVal = &m_layer->m_colorChannels[1010]->m_blending;
         }
     }
     
@@ -269,7 +413,6 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     sprite->updateModelMatrix();
     m_sprites.push_back(sprite);
 
-    sprite->m_batchZLayer = m_zLayer;
     sprite->m_objectIndex = m_index;
     
     if (child.contains("children")) {

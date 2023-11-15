@@ -7,16 +7,29 @@ void GroupGroup::updateAlpha() {
         alpha *= group->m_currAlpha;
     }
 
-    GLubyte data[4] = {
-        static_cast<GLubyte>(alpha * 255), 
-        0, 
-        0, 
-        0,
+    GLfloat data[4] = {
+        alpha, 0, 0, 0
     };
 
     m_groupTexture->setSubData(
         data,
-        {1, 1}, {0, m_index}, GL_UNSIGNED_BYTE
+        {1, 1}, {0, m_index}, GL_FLOAT
+    );
+}
+
+void GroupGroup::updatePosition() {
+    Point position = {0, 0};
+    for (auto& group : m_groups) {
+        position += group->m_position;
+    }
+
+    GLfloat data[4] = {
+        position.x, position.y, 0, 0
+    };
+
+    m_groupTexture->setSubData(
+        data,
+        {1, 1}, {1, m_index}, GL_FLOAT
     );
 }
 
@@ -40,11 +53,11 @@ void Group::updatePositionChanges(float time) {
         return;
     }
 
-    // Point val = m_positionChanges->valueFor(time).val;
-    // if (m_position != val) {
-    //     m_position = val;
-    //     for (auto& object : m_objects) {
-    //         object->m_dirtyPosition = true;
-    //     }
-    // }
+    auto old = m_position;
+    m_position = m_positionChanges->valueFor(time).val;
+    if (old != m_position) {
+        for (auto& groupGroup : m_groupGroups) {
+            groupGroup->updatePosition();
+        }
+    }
 }

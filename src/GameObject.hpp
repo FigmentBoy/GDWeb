@@ -3,6 +3,7 @@
 #include "Node.hpp"
 #include "Color.hpp"
 #include "Sprite.hpp"
+#include "easing.h"
 #include <nlohmann/json.hpp>
 
 class LevelLayer;
@@ -21,13 +22,25 @@ struct GameObjectProperties {
     bool toColorBlending = false;
     std::vector<std::shared_ptr<Group>> m_groups;
 
+    easingFunction function = [](float t, float r) { return t; };
+    float rate = 1.0f;
+
+    bool hasDelta1 = false;
+    bool hasDelta2 = false;
+
+    HSVAColor delta1;
+    HSVAColor delta2;
+
     Point movePosition = {0, 0};
 
-    int copyChannelID = 0;
+    int copyChannelID = -1;
+    HSVAColor copyChannelDelta = {0, 1, 1};
 };
 
 class GameObject : public Node {
 public:
+    std::unique_ptr<GameObjectProperties> m_properties;
+
     inline static int m_currIndex = 0;
     static json m_gameObjectsJson;
     static void loadGameObjectsJson();
@@ -51,6 +64,8 @@ public:
     std::vector<std::shared_ptr<Sprite>> m_sprites;
 
     GameObject(int id, std::map<std::string, std::string> const& obj = {}, LevelLayer* layer = nullptr);
+
+    void setupColorTrigger(int channel);
 
     void addChildSprite(std::shared_ptr<Sprite> parent, json children);
 };

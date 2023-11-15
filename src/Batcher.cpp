@@ -15,11 +15,12 @@ Batcher::Batcher() {
     m_vbo = std::make_unique<VBO>();
     m_ebo = std::make_unique<EBO>();
 
-    m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 7 * sizeof(GLfloat), (void*)0);
-	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 7 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-	m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 7 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+    m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)0);
+	m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+	m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
 }
 
 void Batcher::addBatchSprite(std::shared_ptr<Sprite> sprite) {
@@ -30,11 +31,7 @@ void Batcher::addBatchSprite(std::shared_ptr<Sprite> sprite) {
         m_textures.push_back(sprite->m_spriteFrame->m_texture);
     }
 
-    m_sprites.insert(std::upper_bound(m_sprites.begin(), m_sprites.end(), sprite, [](std::shared_ptr<Sprite> a, std::shared_ptr<Sprite> b) {
-        return  a->m_batchZLayer != b->m_batchZLayer ? a->m_batchZLayer < b->m_batchZLayer : 
-                a->m_zOrder != b->m_zOrder ? a->m_zOrder < b->m_zOrder :
-                a->m_objectIndex < b->m_objectIndex;
-    }), sprite);
+    m_sprites.push_back(sprite);
 
     recurseAdd(sprite);
 }
@@ -77,6 +74,12 @@ void Batcher::setData() {
     if (!m_dirty) return;
     m_dirty = false;
 
+    std::sort(m_sprites.begin(), m_sprites.end(), [](std::shared_ptr<Sprite> a, std::shared_ptr<Sprite> b) {
+        if (a->m_batchZLayer != b->m_batchZLayer) return a->m_batchZLayer < b->m_batchZLayer;
+        if (*a->m_blendingVal != *b->m_blendingVal) return *a->m_blendingVal;
+        return a->m_zOrder < b->m_zOrder;
+    });
+
     std::vector<GLfloat> vboData = std::vector<GLfloat>();
     std::vector<GLuint> eboData = std::vector<GLuint>();
 
@@ -92,16 +95,17 @@ void Batcher::setData() {
         sprite->recurseChildrenWithDepth([&](std::shared_ptr<Node> node) {
             if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
                 if (sprite->m_currentBatcher != this) return;
-
+                if (!sprite->m_visible) return;
+                
                 GLuint indicies[6];
                 for (int j = 0; j < 6; j++) {
                     indicies[j] = templateIndices[j] + (n * 4);
                 }
 
-                vboData.resize((n + 1) * 7 * 4);
+                vboData.resize((n + 1) * 11 * 4);
                 eboData.resize((n + 1) * 6);
 
-                memcpy(vboData.data() + (n * 7 * 4), sprite->m_verticies, sizeof(GLfloat) * 7 * 4);
+                memcpy(vboData.data() + (n * 11 * 4), sprite->m_verticies, sizeof(GLfloat) * 11 * 4);
                 memcpy(eboData.data() + (n * 6), indicies, sizeof(GLuint) * 6);
 
                 n++;
@@ -109,7 +113,7 @@ void Batcher::setData() {
         });
     }
 
-    m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 7 * 4);
+    m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 11 * 4);
     m_ebo->setIndices(eboData.data(), n * sizeof(GLuint)  * 6);
     numRendered = n;
 }
@@ -127,5 +131,6 @@ void Batcher::draw() {
         m_textures[i]->bind();
     }
     
+    glDisable(GL_DEPTH_TEST);
     glDrawElements(GL_TRIANGLES, numRendered * 6, GL_UNSIGNED_INT, 0);
 }

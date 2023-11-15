@@ -29,15 +29,16 @@ void RepeatForeverSprite::updateVertices() {
     float deltaWidth = unitWidth * times;
 
     float slot = m_spriteFrame->m_texture->m_slot - GL_TEXTURE0;
-
-    GLfloat verticies[28] = { 
-        bottomLeftTransformed.x,               bottomLeftTransformed.y,                    	   0,      1,    m_colorChannel,  m_groupGroupIndex,  slot,// Lower left corner
-        bottomLeftTransformed.x,               bottomLeftTransformed.y + m_lockedHeight,       0,      0,    m_colorChannel,  m_groupGroupIndex,  slot,// Upper left corner
-        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y + m_lockedHeight,       times,  0,    m_colorChannel,  m_groupGroupIndex,  slot,// Upper right corner
-        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y,                        times,  1,    m_colorChannel,  m_groupGroupIndex,  slot,// Lower right corner
+    float checkVal = m_hasColorDelta ? ((m_colorDelta.addS ? 1.f : 0.f) + (m_colorDelta.addV ? 0.5f : 1.f)) : 0.0f;
+    
+    GLfloat verticies[44] = { 
+        bottomLeftTransformed.x,               bottomLeftTransformed.y,                    	   0,      1,    m_colorChannel,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal, // Lower left corner
+        bottomLeftTransformed.x,               bottomLeftTransformed.y + m_lockedHeight,       0,      0,    m_colorChannel,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal, // Upper left corner
+        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y + m_lockedHeight,       times,  0,    m_colorChannel,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal, // Upper right corner
+        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y,                        times,  1,    m_colorChannel,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal, // Lower right corner
     };
 
-    for (int i = 0; i < 28; i++) m_verticies[i] = verticies[i];
+    for (int i = 0; i < 44; i++) m_verticies[i] = verticies[i];
 
     if (!m_currentBatcher) m_vbo->setVertices(m_verticies, sizeof(m_verticies));
 }

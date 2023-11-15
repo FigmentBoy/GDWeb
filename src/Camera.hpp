@@ -4,7 +4,7 @@
 #include "Geometry.hpp"
 #include "Node.hpp"
 
-#define VIEW_RATIO 0.25f
+#define VIEW_RATIO 0.333f
 
 class Camera {
 public:

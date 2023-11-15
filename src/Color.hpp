@@ -10,8 +10,8 @@ public:
     float v;
     float a;
 
-    bool sChecked;
-    bool vChecked;
+    bool addS = false;
+    bool addV = false;
 
     HSVAColor() : h(0), s(0), v(0), a(1) {}
     HSVAColor(float _h, float _s, float _v, float _a) : h(_h), s(_s), v(_v), a(_a) {}

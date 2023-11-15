@@ -17,6 +17,10 @@ public:
     GLfloat m_colorChannel;
     GLfloat m_groupGroupIndex = 0;
 
+    bool* m_blendingVal = nullptr;
+    bool m_hasColorDelta = false;
+    HSVAColor m_colorDelta = {0, 1, 1};
+
     float m_alphaModifier = 1.0f;
 
     int m_textureIndex = 0;
@@ -28,7 +32,7 @@ public:
     std::unique_ptr<VBO> m_vbo;
     std::unique_ptr<EBO> m_ebo;
     
-    GLfloat m_verticies[28];
+    GLfloat m_verticies[44];
     GLuint m_indicies[6] = {
         0, 2, 1, // Upper triangle
         0, 3, 2 // Lower triangle

@@ -1,4 +1,5 @@
 #include "ColorChannel.hpp"
+#include "Triggers.hpp"
 
 void ColorChannel::updateTextureColor() {
     GLubyte data[4] = {
@@ -26,8 +27,13 @@ void ColorChannel::updateTextureBlending() {
     );
 }
 
+RGBAColor ColorChannel::valueFor(float time) {
+    if (!m_colorTriggers) return m_currColor;
+    return m_colorTriggers->valueFor(time);
+}
+
 void ColorChannel::updateColor(float time) {
-    if (!m_colorTriggers) {
+    if (!m_colorTriggers || (m_colorCopied && time < m_colorTriggers->m_changes.begin()->first)) {
         return;
     }
 
@@ -36,7 +42,10 @@ void ColorChannel::updateColor(float time) {
     
     auto oldBlending = m_blending;
     m_blending = res.m_blending;
-    if (oldBlending != m_blending) updateTextureBlending();
+    if (oldBlending != m_blending) { // Re-sort
+        updateTextureBlending();
+        m_batcher->m_dirty = true;
+    }
 
     RGBAColor state = (RGBAColor) res;
     if (oldColor != state) {
@@ -45,14 +54,14 @@ void ColorChannel::updateColor(float time) {
 
         HSVAColor hsvaState = state.toHSVA();
         for (auto& channel : m_childChannels) {
-            channel->parentUpdated(hsvaState);
+            channel->parentUpdated(hsvaState, time);
         }
     }
 }
 
 
 
-void ColorChannel::parentUpdated(HSVAColor parentColor) {
+void ColorChannel::parentUpdated(HSVAColor parentColor, float time) {
     HSVAColor newColor = parentColor;
 
     if (m_index == 1007) { // LBG
@@ -74,10 +83,25 @@ void ColorChannel::parentUpdated(HSVAColor parentColor) {
         return;
     }
 
-    newColor.h += m_inheritedDelta.h;
-    newColor.s += m_inheritedDelta.s;
-    newColor.v += m_inheritedDelta.v;
-    m_currColor = newColor.toRGBA();
+    if (m_colorTriggers && time >= m_colorTriggers->m_changes.begin()->first) return;
 
+    newColor.h += m_inheritedDelta.h;
+    newColor.h = fmod(newColor.h, 360.0f);
+
+    if (m_inheritedDelta.addS) newColor.s += m_inheritedDelta.s;
+    else newColor.s *= m_inheritedDelta.s;
+
+    newColor.s = std::clamp(newColor.s, 0.0f, 1.0f);
+
+    if (m_inheritedDelta.addV) newColor.v += m_inheritedDelta.v;
+    else newColor.v *= m_inheritedDelta.v;
+
+    newColor.v = std::clamp(newColor.v, 0.0f, 1.0f);
+
+    for (auto& channel : m_childChannels) {
+        channel->parentUpdated(newColor, time);
+    }
+    
+    m_currColor = newColor.toRGBA();
     updateTextureColor();
 }

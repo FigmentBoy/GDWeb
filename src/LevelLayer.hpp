@@ -22,15 +22,15 @@ public:
     Point m_prevMousePos;
 
     std::vector<std::shared_ptr<ColorChannel>> m_colorChannels; //kS38
-    std::map<int, std::map<float, ColorChange>> m_rawColorChanges;
+    std::map<int, std::map<float, std::shared_ptr<ColorChange>>> m_rawColorChanges;
     std::vector<int> m_colorChannelsWithChanges;
 
     std::vector<std::shared_ptr<Group>> m_groups;
     
-    std::map<int, std::map<float, AlphaChange>> m_rawAlphaChanges;
+    std::map<int, std::map<float, std::shared_ptr<AlphaChange>>> m_rawAlphaChanges;
     std::vector<int> m_groupsWithAlphaChanges;
 
-    std::map<int, std::map<float, PositionChange>> m_rawPositionChanges;
+    std::map<int, std::map<float, std::vector<std::shared_ptr<PositionChange>>>> m_rawPositionChanges;
     std::vector<int> m_groupsWithPositionChanges;
 
     std::unique_ptr<GameEffect<SpeedChange>> m_speedChanges;

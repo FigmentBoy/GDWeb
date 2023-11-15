@@ -6,11 +6,13 @@ in vec2 aTex;
 in float aColor;
 in float aGroupGroup;
 in float aTexIndex;
+in vec4 aHSV;
 
 out vec2 texCoord;
 out float color;
 out float groupGroup;
 out float texIndex;
+out vec4 hsv;
 
 uniform mat4 ProjectionMatrix;
 
@@ -21,6 +23,12 @@ void main() {
     color = aColor;
     groupGroup = aGroupGroup;
     texIndex = aTexIndex;
+    hsv = aHSV;
 
-    gl_Position = ProjectionMatrix * vec4(vertPosition, 1.0);
+    vec3 groupGroupPosition = vec3(
+        texelFetch(groupGroupTexture, ivec2(1, groupGroup), 0).xy,
+        0.0
+    );
+
+    gl_Position = ProjectionMatrix * vec4(vertPosition + groupGroupPosition, 1.0);
 }

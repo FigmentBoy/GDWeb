@@ -35,7 +35,7 @@ LevelLayer::LevelLayer(Level* level) : m_level(level) {
 
     setupObjects();
 
-    auto groupGroupTexture = std::make_shared<Texture>(2, GroupGroup::m_groupGroups.size(), GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA, GL_UNSIGNED_BYTE);
+    auto groupGroupTexture = std::make_shared<Texture>(2, GroupGroup::m_groupGroups.size(), GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA32F, GL_FLOAT);
     for (auto& groupGroup : GroupGroup::m_groupGroups) {
         groupGroup->m_groupTexture = groupGroupTexture;
     }
@@ -57,7 +57,8 @@ void LevelLayer::setupTriggers() {
     for (auto& [channel, changes] : m_rawColorChanges) {
         m_colorChannels[channel]->m_colorTriggers = std::make_unique<GameEffect<ColorChange>>(ColorChannelValue {m_colorChannels[channel]->m_baseColor, m_colorChannels[channel]->m_blending});
         for (auto& [position, change] : changes) {
-            m_colorChannels[channel]->m_colorTriggers->m_changes.insert({timeForX(position), ColorChange {change.m_toValue, change.m_fromValue, change.m_duration}});
+            change->m_position = timeForX(position);
+            m_colorChannels[channel]->m_colorTriggers->m_changes.insert({change->m_position, change});
         }
         m_colorChannels[channel]->m_colorTriggers->setup();
         m_colorChannelsWithChanges.push_back(channel);
@@ -74,7 +75,7 @@ void LevelLayer::setupTriggers() {
     for (auto& [group, changes] : m_rawAlphaChanges) {
         m_groups[group]->m_alphaTriggers = std::make_unique<GameEffect<AlphaChange>>(AlphaValue {1.0f});
         for (auto& [position, change] : changes) {
-            m_groups[group]->m_alphaTriggers->m_changes.insert({timeForX(position), AlphaChange {change.m_toValue, change.m_fromValue, change.m_duration}});
+            m_groups[group]->m_alphaTriggers->m_changes.insert({timeForX(position), change});
         }
         m_groups[group]->m_alphaTriggers->setup();
         m_groupsWithAlphaChanges.push_back(group);
@@ -89,20 +90,24 @@ void LevelLayer::setupTriggers() {
         groupGroup->updateAlpha();
     }
 
-    // std::cout << "compiling move triggers" << std::endl;
-    // for (auto& [group, changes] : m_rawPositionChanges) {
-    //     m_groups[group]->m_positionChanges = std::make_unique<GameEffect<PositionChange>>(PositionValue {{0, 0}});
-    //     for (auto& [position, change] : changes) {
-    //         m_groups[group]->m_positionChanges->m_changes.insert({timeForX(position), PositionChange {change.m_toValue, change.m_fromValue, change.m_duration}});
-    //     }
-    //     m_groups[group]->m_positionChanges->setup();
-    //     m_groupsWithPositionChanges.push_back(group);
-    // }
-    // m_rawPositionChanges.clear();
+    std::cout << "compiling move triggers" << std::endl;
+    for (auto& [group, changes] : m_rawPositionChanges) {
+        m_groups[group]->m_positionChanges = std::make_unique<GameEffect<PositionChange>>(PositionValue {{0, 0}});
 
-    // for (auto& group : m_groups) {
-    //     group->updatePositionChanges(currTime);
-    // }
+        for (auto& [position, changeVec] : changes) {
+            for (auto& change : changeVec) {
+                m_groups[group]->m_positionChanges->m_rawChanges[timeForX(position)].push_back(change);
+            }
+        }
+
+        m_groups[group]->m_positionChanges->setup();
+        m_groupsWithPositionChanges.push_back(group);
+    }
+    m_rawPositionChanges.clear();
+
+    for (auto& group : m_groups) {
+        group->updatePositionChanges(currTime);
+    }
 }
 
 void LevelLayer::updateTriggers(float time) {
@@ -114,9 +119,9 @@ void LevelLayer::updateTriggers(float time) {
         m_groups[group]->updateAlphaTriggers(time);
     }
 
-    // for (auto& group : m_groupsWithPositionChanges) {
-    //     m_groups[group]->updatePositionChanges(time);
-    // }
+    for (auto& group : m_groupsWithPositionChanges) {
+        m_groups[group]->updatePositionChanges(time);
+    }
 }
 
 void LevelLayer::parseLevelString() {
@@ -148,7 +153,7 @@ void LevelLayer::parseColor(std::string colorString) {
     int copyColor = 0;
     bool blending = false;
     int index = 1;
-    HSVAColor inheritedDelta;
+    HSVAColor inheritedDelta = {0, 1, 1};
 
     for (int i = 0; i < channelSplit.size(); i += 2) {
         switch (std::stoi(channelSplit[i])) {
@@ -181,8 +186,10 @@ void LevelLayer::parseColor(std::string colorString) {
                 inheritedDelta.h = std::stof(hsvaSplit[0]);
                 inheritedDelta.s = std::stof(hsvaSplit[1]);
                 inheritedDelta.v = std::stof(hsvaSplit[2]);
-                inheritedDelta.sChecked = std::stoi(hsvaSplit[3]);
-                inheritedDelta.vChecked = std::stoi(hsvaSplit[4]);
+
+                inheritedDelta.addS = std::stoi(hsvaSplit[3]);
+                inheritedDelta.addV = std::stoi(hsvaSplit[4]);
+
                 break;
         }
     }
@@ -214,17 +221,10 @@ void LevelLayer::parseLevelProperties() {
         m_colorChannels.push_back(std::make_shared<ColorChannel>());
         m_colorChannels[i]->m_index = i;
         m_colorChannels[i]->m_colorTexture = colorTexture;
+        m_colorChannels[i]->m_batcher = m_levelBatcher;
     }
 
     colorTexture->setUniforms("colorTexture");
-
-    m_colorChannels[1000]->m_childChannels.push_back(m_colorChannels[1007]); // LBG (not LBJ (Lyndon B. Johnson)))
-    m_colorChannels[1007]->m_blending = true;
-
-    m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color; // P1
-    m_colorChannels[1006]->m_currColor = ColorChannel::m_p2Color; // P2
-
-    m_colorChannels[1010]->m_currColor = {0, 0, 0}; // BLACK
 
     for (auto& [key, value] : m_levelProperties) {
         if (key == "kA4") {
@@ -289,6 +289,14 @@ void LevelLayer::parseLevelProperties() {
             printf("done parsing color channels\n");
         }
     }
+
+    m_colorChannels[1000]->m_childChannels.push_back(m_colorChannels[1007]); // LBG (not LBJ (Lyndon B. Johnson)))
+    m_colorChannels[1007]->m_blending = true;
+
+    m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color; // P1
+    m_colorChannels[1006]->m_currColor = ColorChannel::m_p2Color; // P2
+
+    m_colorChannels[1010]->m_currColor = {0, 0, 0}; // BLACK
 }
 
 void LevelLayer::setupObjects() {
@@ -346,7 +354,7 @@ void LevelLayer::update(float delta) {
     float prevX = camera->m_position.x;
 
     if (m_autoScroll) {
-        float speed = m_speedChanges->mostRecent(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO).m_toValue.val;
+        float speed = m_speedChanges->mostRecent(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO)->m_toValue.val;
         camera->m_position.x += delta * speed;
     }
 
@@ -374,7 +382,7 @@ void LevelLayer::draw() {
 
     if (ImGui::ColorEdit4("P1 Color", &ColorChannel::m_p1Color.r)) {
         m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color;
-        m_colorChannels[1007]->parentUpdated(m_colorChannels[1000]->m_currColor.toHSVA());
+        m_colorChannels[1007]->parentUpdated(m_colorChannels[1000]->m_currColor.toHSVA(), timeForX(camera->m_position.x + camera->m_viewSize.x * camera->m_viewScale.x * VIEW_RATIO));
     };
 
     if (ImGui::ColorEdit4("P2 Color", &ColorChannel::m_p2Color.r)) {

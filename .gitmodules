@@ -13,3 +13,6 @@
 [submodule "include/glfw"]
 	path = include/glfw
 	url = git@github.com:glfw/glfw
+[submodule "include/easing-functions"]
+	path = include/easing-functions
+	url = git@github.com:nicolausYes/easing-functions

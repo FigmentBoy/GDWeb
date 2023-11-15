@@ -62,7 +62,7 @@ public:
     using Type = T;
     using BaseTypeChanger<T>::BaseTypeChanger;
 
-    std::map<float, CompoundTypeChanger<Type>> m_changes;
+    std::map<float, std::vector<std::shared_ptr<CompoundTypeChanger<Type>>>> m_changes;
 
     /**
      * @brief Returns the final value of only this changer, not including any sub-changers, given a starting value
@@ -87,7 +87,7 @@ public:
     using Changer = T;
     using Type = Changer::Type;
 
-    std::map<float, Changer> m_changes;
+    std::map<float, std::shared_ptr<Changer>> m_changes;
     Type m_startingValue;
     
     Type m_cachedValue;
@@ -101,14 +101,14 @@ public:
             return m_cachedValue;
         }
 
-        typename std::map<float, Changer>::iterator lowerBound = m_changes.lower_bound(x);
+        typename std::map<float, std::shared_ptr<Changer>>::iterator lowerBound = m_changes.lower_bound(x);
         if (lowerBound == m_changes.begin()) {
-            Changer changer = Changer(m_startingValue);
+            std::unique_ptr<Changer> changer = std::make_unique<Changer>(m_startingValue);
 
-            if (x < changer.m_cacheAfter) return changer.valueFor(x);
+            if (x < changer->m_cacheAfter) return changer->valueFor(x);
         
-            m_cachedValue = changer.valueFor(x);
-            m_cachedValueMin = changer.m_cacheAfter;
+            m_cachedValue = changer->valueFor(x);
+            m_cachedValueMin = changer->m_cacheAfter;
             m_cachedValueMax = lowerBound->first;
 
             return m_cachedValue;
@@ -116,21 +116,21 @@ public:
 
         auto iter = std::prev(lowerBound);
 
-        if (x < iter->first + iter->second.m_cacheAfter) return iter->second.valueFor(x - iter->first);
+        if (x < iter->first + iter->second->m_cacheAfter) return iter->second->valueFor(x - iter->first);
 
-        m_cachedValue = iter->second.valueFor(x - iter->first);
+        m_cachedValue = iter->second->valueFor(x - iter->first);
 
-        m_cachedValueMin = iter->first + iter->second.m_cacheAfter;
+        m_cachedValueMin = iter->first + iter->second->m_cacheAfter;
         if (lowerBound == m_changes.end()) m_cachedValueMax = std::numeric_limits<float>::infinity();
         else m_cachedValueMax = lowerBound->first;
 
         return m_cachedValue;
     };
 
-    virtual Changer mostRecent(float x) {
-        typename std::map<float, Changer>::iterator lowerBound = m_changes.lower_bound(x);
+    virtual std::shared_ptr<Changer> mostRecent(float x) {
+        typename std::map<float, std::shared_ptr<Changer>>::iterator lowerBound = m_changes.lower_bound(x);
         if (lowerBound == m_changes.begin()) {
-            return Changer(m_startingValue);
+            return std::make_shared<Changer>(m_startingValue);
         }
         auto iter = --lowerBound;
         return iter->second;
@@ -150,10 +150,10 @@ public:
 
     virtual void setup() {
         float lastPosition = 0.0f;
-        Changer lastChanger = Changer(this->m_startingValue);
+        std::shared_ptr<Changer> lastChanger = std::make_shared<Changer>(this->m_startingValue);
 
         for (auto& [position, change] : this->m_changes) {
-            change.m_fromValue = lastChanger.valueFor(position - lastPosition);
+            change->m_fromValue = lastChanger->valueFor(position - lastPosition);
             lastPosition = position;
             lastChanger = change;
         }
@@ -168,23 +168,36 @@ public:
 
     using BaseGameEffect<CompoundTypeChanger<T>>::BaseGameEffect;
 
+    std::map<float, std::vector<std::shared_ptr<Changer>>> m_rawChanges;
+
     virtual void setup() {
-        std::map<float, Changer> activeChangers;
+        std::map<float, std::vector<std::shared_ptr<Changer>>> activeChangers;
         Type lastCommittedValue = this->m_startingValue;
 
-        for (auto& [position, change] : this->m_changes) {
-            for (auto& [activePosition, activeChanger] : activeChangers) {
-                if (activePosition + activeChanger.m_duration < position) {
-                    lastCommittedValue = activeChanger.finalValue(lastCommittedValue);
-                    activeChangers.erase(activePosition);
-                } else {
-                    change.m_changes.insert({activePosition - position, activeChanger});
-                    change.m_cacheAfter = std::max(change.m_cacheAfter, activeChanger.m_duration - (activePosition - position));
+        for (auto& [position, changes] : this->m_rawChanges) {
+            for (auto& change : changes) {
+                for (auto& [activePosition, currActive] : activeChangers) {
+                    for (auto& activeChanger : currActive) {
+                        if (activePosition + activeChanger->m_duration < position) {
+                            lastCommittedValue = activeChanger->finalValue(lastCommittedValue);
+                        } else {
+                            change->m_changes[activePosition - position].push_back(activeChanger);
+                            change->m_cacheAfter = std::max(change->m_cacheAfter, activeChanger->m_duration - (activePosition - position));
+                        }
+                    }
                 }
+                
+                for (auto& [activePosition, currActive] : activeChangers) {
+                    std::erase_if(currActive, [activePosition, position](std::shared_ptr<Changer> changer) {
+                        return changer->m_duration + activePosition < position;
+                    });
+                }
+
+                change->m_fromValue = lastCommittedValue;
+                activeChangers[position].push_back(change);
+
+                this->m_changes[position] = change;
             }
-            
-            change.m_fromValue = lastCommittedValue;
-            activeChangers.insert({position, change});
         }
     }
 };

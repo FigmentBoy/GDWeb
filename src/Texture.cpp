@@ -80,14 +80,13 @@ Texture::Texture(int width, int height, GLenum texType, GLenum slot, GLenum form
     glTexParameteri(texType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(texType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(texType, 0, GL_RGBA, m_size.width, m_size.height, 0, format, pixelType, NULL);
+    glTexImage2D(texType, 0, format, m_size.width, m_size.height, 0, GL_RGBA, pixelType, NULL);
 }
 
 void Texture::setSubData(const GLvoid* imageData, Size imageSize, Point offset, GLenum type) {
     bind();
 
-    glTexSubImage2D(m_type, 0, offset.x, offset.y, imageSize.width, imageSize.height, m_format, type, imageData);
-    glGenerateMipmap(m_type);
+    glTexSubImage2D(m_type, 0, offset.x, offset.y, imageSize.width, imageSize.height, GL_RGBA, type, imageData);
 }
 
 void Texture::setUniforms(int index) {
