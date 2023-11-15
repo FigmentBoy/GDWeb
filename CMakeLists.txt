@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.27.6)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+
 project(WebEditor)
 
 file(GLOB SOURCES 
@@ -17,7 +19,8 @@ file(GLOB SOURCES
 )
 
 if(EMSCRIPTEN)
-    configure_file("${CMAKE_SOURCE_DIR}/dist/WebEditor.html" "${CMAKE_SOURCE_DIR}/build/WebEditor.html" COPYONLY)
+    make_directory("${CMAKE_SOURCE_DIR}/bin")
+    configure_file("${CMAKE_SOURCE_DIR}/dist/WebEditor.html" "${CMAKE_SOURCE_DIR}/bin/index.html" COPYONLY)
 endif()
 
 add_executable(WebEditor ${SOURCES})
@@ -37,7 +40,7 @@ if (EMSCRIPTEN)
         -sWASM=1 -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=5 
         -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sUSE_WEBGL2=1 
         -sUSE_GLFW=3 
-        --preload-file ../static"
+        --preload-file ../static "
     )
 else()
     find_package(OpenGL REQUIRED)

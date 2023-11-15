@@ -1,0 +1,54 @@
+name: Build and Deploy
+on:
+  push:
+    branches:
+      - main
+env:
+  EMSDK_VERSION: 3.1.47
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup cache
+        id: cache-system-libraries
+        uses: actions/cache@v2
+        with:
+          path: emsdk-cache
+          key: ${{env.EMSDK_VERSION}}-${{ runner.os }}
+
+      - name: Setup emscripten
+        uses: mymindstorm/setup-emsdk@v11
+        with:
+          emscripten-version: ${{env.EMSDK_VERSION}}
+          cache: emsdk-cache
+        
+      - name: Setup Ninja
+        run: sudo apt-get install -y ninja-build
+
+      - name: Configure CMake
+        run: emcmake cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: './bin'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1

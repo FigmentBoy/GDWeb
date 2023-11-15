@@ -11,7 +11,6 @@
 #include "GUI.hpp"
 #include "utils.hpp"
 
-#include <gl/GL.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>
