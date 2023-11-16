@@ -4,20 +4,12 @@
 #include <iostream>
 #include "utils.hpp"
 
-#define $TypeChangerForwardDeclaration(type, name)                              \
-    struct type;                                                                \
-    using name##Change = TypeChanger<type>;                                     \
-
 #define $CreateTypeChanger(type, name)                                          \
     using name##ChangeBase = BaseTypeChanger<type>;                             \
     using name##Change = TypeChanger<type>;                                     \
     template <>                                                                 \
     class TypeChanger<type> : public BaseTypeChanger<type>                      \
     
-#define $CompoundTypeChangerForwardDeclaration(type, name)                      \
-    struct type;                                                                \
-    using name##Change = CompoundTypeChanger<type>;                             \
-
 #define $CreateCompoundTypeChanger(type, name)                                  \
     using name##ChangeBase = BaseCompoundTypeChanger<type>;                     \
     using name##Change = CompoundTypeChanger<type>;                             \
@@ -136,7 +128,6 @@ public:
         auto iter = std::prev(lowerBound);
 
         m_cachedValue = iter->second->valueFor(x - iter->first);
-
         if (x < iter->first + iter->second->m_cacheAfter) return m_cachedValue;
 
         m_cachedValueMin = iter->first + iter->second->m_cacheAfter;

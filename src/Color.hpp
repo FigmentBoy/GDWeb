@@ -19,7 +19,7 @@ public:
 
     HSVAColor shift(HSVAColor shift);
     static HSVAColor lerp(HSVAColor from, HSVAColor to, float t);
-    
+
     RGBAColor toRGBA();
 };
 

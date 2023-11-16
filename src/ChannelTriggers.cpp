@@ -23,10 +23,12 @@ ColorChannelValue ColorChange::valueFor(float x) {
             m_lastBase = baseColor;
             m_toValue = {baseColor.shift(m_inheritedDelta), m_toValue.m_blending};
         }
+
+        return {m_channelToCopy->m_currColor.shift(m_inheritedDelta), m_toValue.m_blending};
     }
 
-    if (m_duration == 0.0f || x > m_duration) return m_toValue;
-    return {RGBAColor::lerp(m_fromValue, m_toValue, std::min(x / m_duration, 1.0f)), m_toValue.m_blending};
+    // if (m_duration == 0.0f || x > m_duration) return m_toValue;
+    return {RGBAColor::lerp(m_fromValue, m_toValue, 1.f), m_toValue.m_blending};
 };
 
 PulseValue PulseChange::finalValue(PulseValue startValue) {
@@ -41,7 +43,7 @@ PulseValue PulseChange::getContribution(PulseValue in, float x) {
         if (m_fadeIn == 0.0f) percent = 0.0f;
         else percent = x / m_fadeIn;
     } else if (x > m_fadeIn + m_hold) {
-        if (m_fadeOut == 0.0f) percent = 1.0f;
+        if (m_fadeOut == 0.0f) percent = 0.0f;
         else percent = 1.0f - ((x - m_fadeIn - m_hold) / m_fadeOut);
     }
 
@@ -72,21 +74,28 @@ PulseValue PulseChange::getContribution(PulseValue in, float x) {
 
 PulseValue PulseChange::valueFor(float x) {
     RGBAColor base = m_targetChannel->valueForWithoutPulses(m_position + x);
-    PulseValue result = base;
 
-    for (auto it = m_changes.begin(); it != m_changes.end(); it++) {
+    if (base == m_lastBase && x == m_lastPosition) {
+        return m_lastPulse;
+    }
+
+    m_lastPosition = x;
+    m_lastBase = base;
+    m_lastPulse = base;
+
+    m_lastPulse = getContribution(m_lastPulse, x);
+
+    for (auto it = m_changes.rbegin(); it != m_changes.rend(); it++) {
         auto& [time, changes] = *it;
         for (auto& change : changes) {
             if (change->m_exclusive) {
-                result = base;
-                result = change->getContribution(result, x - time);
+                m_lastPulse = base;
+                m_lastPulse = change->getContribution(m_lastPulse, x - time);
             } else {
-                result = change->getContribution(result, x - time);
+                m_lastPulse = change->getContribution(m_lastPulse, x - time);
             }
         }
     }
 
-    result = getContribution(result, x);
-
-    return result;
+    return m_lastPulse;
 }

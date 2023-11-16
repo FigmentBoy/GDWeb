@@ -240,6 +240,8 @@ void LevelLayer::parseColor(std::string colorString) {
         }
     }
 
+    if (index == 1010) return;
+
     m_colorChannels[index]->m_baseColor = baseColor;
     m_colorChannels[index]->m_currColor = baseColor;
     

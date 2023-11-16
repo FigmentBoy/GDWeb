@@ -87,7 +87,7 @@ void ColorChannel::updateColor(float time) {
 
     if (m_currColor != m_textureColor) {
         updateTextureColor();
-
+        
         HSVAColor hsvaState = m_currColor.toHSVA();
         for (auto& channel : m_childChannels) {
             channel->updateColor(time);

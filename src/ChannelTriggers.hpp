@@ -41,9 +41,10 @@ public:
     using PulseChangeBase::PulseChangeBase;
 
     CompoundTypeChanger<PulseValue>(bool exclusive, PulseType pulseType, RGBAColor toRGB, std::shared_ptr<ColorChannel> targetChannel, std::shared_ptr<ColorChannel> channelToCopy, HSVAColor toHSV, float fadeIn, float hold, float fadeOut) 
-        : m_exclusive(exclusive), m_pulseType(pulseType), m_toRGB(toRGB), m_targetChannel(targetChannel), m_channelToCopy(channelToCopy), m_toHSV(toHSV), m_fadeIn(fadeIn), m_hold(hold), m_fadeOut(fadeOut) {
-            m_duration = fadeIn + hold + fadeOut;
-            m_cacheAfter = m_duration;
+        : m_exclusive(exclusive), m_pulseType(pulseType), m_toRGB(toRGB), m_targetChannel(targetChannel), m_channelToCopy(channelToCopy), m_toHSV(toHSV), m_fadeIn(fadeIn), m_hold(hold), m_fadeOut(fadeOut) 
+    { // The only time I will ever put a curly brace on a new line LOL    
+        m_duration = fadeIn + hold + fadeOut;
+        m_cacheAfter = std::numeric_limits<float>::infinity(); // Never cache, we do it manually
     };
 
     bool m_exclusive;
@@ -54,6 +55,10 @@ public:
     RGBAColor m_toRGB;
     PulseType m_pulseType;
     
+    float m_lastPosition;
+    RGBAColor m_lastPulse;
+    RGBAColor m_lastBase = {-1, -1, -1};
+
     float m_position;
 
     float m_fadeIn;
