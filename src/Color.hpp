@@ -17,6 +17,9 @@ public:
     HSVAColor(float _h, float _s, float _v, float _a) : h(_h), s(_s), v(_v), a(_a) {}
     HSVAColor(float _h, float _s, float _v) : h(_h), s(_s), v(_v), a(1) {}
 
+    HSVAColor shift(HSVAColor shift);
+    static HSVAColor lerp(HSVAColor from, HSVAColor to, float t);
+    
     RGBAColor toRGBA();
 };
 
@@ -31,6 +34,7 @@ public:
     RGBAColor(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
     RGBAColor(float _r, float _g, float _b) : r(_r), g(_g), b(_b), a(1) {}
 
+    RGBAColor shift(HSVAColor shift);
     static RGBAColor lerp(RGBAColor from, RGBAColor to, float t);
 
     bool operator==(const RGBAColor& other) const {

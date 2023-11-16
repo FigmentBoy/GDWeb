@@ -3,9 +3,12 @@
 #include "Node.hpp"
 #include "Camera.hpp"
 
+#include "SpeedChange.hpp"
+#include "GroupTriggers.hpp"
+#include "ChannelTriggers.hpp"
+
 #include "GameEffect.hpp"
 #include "Level.hpp"
-#include "Triggers.hpp"
 #include "Group.hpp"
 #include "ColorChannel.hpp"
 #include "RepeatForeverSprite.hpp"
@@ -41,7 +44,6 @@ public:
 
     std::map<int, std::map<float, std::vector<std::shared_ptr<PulseChange>>>> m_rawPulseChanges;
     std::unique_ptr<GameEffect<PulseChange>> m_pulseChanges;
-    std::vector<int> m_colorChannelsWithPulseChanges;
 
     std::unique_ptr<GameEffect<SpeedChange>> m_speedChanges;
 

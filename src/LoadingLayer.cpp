@@ -131,7 +131,7 @@ void* loadResources(void* layerPtr) {
     layer->m_stage = LoadingStage::LEVEL;
     layer->m_percentDone = 0.0f;
 
-    Level* level = Level::fromGMD("static/The Golden.gmd");
+    Level* level = Level::fromGMD("static/Acu.gmd");
 
     layer->m_levelLayer = new LevelLayer(level, layer);
     layer->m_done = true;

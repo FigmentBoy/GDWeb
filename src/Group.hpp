@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GameObject.hpp"
-#include "Triggers.hpp"
+#include "GroupTriggers.hpp"
 
 class GroupGroup;
 class Group {

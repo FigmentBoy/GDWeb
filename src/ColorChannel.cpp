@@ -1,5 +1,5 @@
 #include "ColorChannel.hpp"
-#include "Triggers.hpp"
+#include "ChannelTriggers.hpp"
 
 void ColorChannel::updateTextureColor() {
     m_textureColor = m_currColor;
@@ -29,72 +29,35 @@ void ColorChannel::updateTextureBlending() {
     );
 }
 
-RGBAColor ColorChannel::valueFor(float time) {
-    RGBAColor res = m_baseColor;
+ColorChannelValue ColorChannel::valueFor(float time) {
+    ColorChannelValue res = valueForWithoutPulses(time);
 
-    if (m_colorTriggers) {
-        res = m_colorTriggers->valueFor(time);
+    if (m_pulseTriggers && m_pulseTriggers->m_changes.lower_bound(time) != m_pulseTriggers->m_changes.begin()) {
+        res = {m_pulseTriggers->valueFor(time), res.m_blending};
     }
 
-    if (m_pulseTriggers) {
-        res = PulseChange::apply(res, m_pulseTriggers->valueFor(time));
+    return res;
+}
+
+ColorChannelValue ColorChannel::valueForWithoutPulses(float time) {
+    ColorChannelValue res = {m_colorCopied && m_parentChannel ? m_parentChannel->valueFor(time).shift(m_inheritedDelta) : m_baseColor, m_blending};
+
+    if (m_colorTriggers && m_colorTriggers->m_changes.lower_bound(time) != m_colorTriggers->m_changes.begin()) {
+        res = m_colorTriggers->valueFor(time);
     }
 
     return res;
 }
 
 void ColorChannel::updateColor(float time) {
-    if (!m_colorTriggers || (m_colorCopied && time < m_colorTriggers->m_changes.begin()->first)) {
-        return;
-    }
-
-    RGBAColor oldColor = m_currColor;
-    ColorChannelValue res = m_colorTriggers->valueFor(time);
-    
-    auto oldBlending = m_blending;
-    m_blending = res.m_blending;
-    if (oldBlending != m_blending) { // Re-sort
-        updateTextureBlending();
-        m_batcher->m_dirty = true;
-    }
-
-    m_currColor = static_cast<RGBAColor>(res);
-    if (m_currColor != m_textureColor) {
-        updateTextureColor();
-
-        HSVAColor hsvaState = m_currColor.toHSVA();
-        for (auto& channel : m_childChannels) {
-            channel->parentUpdated(hsvaState, time);
-        }
-    }
-}
-
-void ColorChannel::updatePulse(float time) {
-    if (!m_pulseTriggers) return;
-
-    PulseValue res = m_pulseTriggers->valueFor(time);
-
-    m_currColor = PulseChange::apply(m_currColor, res);
-    if (m_currColor != m_textureColor) {
-        updateTextureColor();
-
-        HSVAColor hsvaState = m_currColor.toHSVA();
-        for (auto& channel : m_childChannels) {
-            channel->parentUpdated(hsvaState, time);
-        }
-    }
-}
-
-
-
-void ColorChannel::parentUpdated(HSVAColor parentColor, float time) {
-    HSVAColor newColor = parentColor;
-
     if (m_index == 1007) { // LBG
-        RGBAColor bg = parentColor.toRGBA();
+        RGBAColor bg = m_parentChannel->valueFor(time);
+        HSVAColor newColor = bg.toHSVA();
+
         newColor.s -= 0.2;
         newColor.v += 0.2;
         RGBAColor lbg = newColor.toRGBA();
+
         float f = (bg.r + bg.g + bg.b) * 255.f / 150.f;
 
         if (f < 1.f) {
@@ -109,25 +72,25 @@ void ColorChannel::parentUpdated(HSVAColor parentColor, float time) {
         return;
     }
 
-    if (m_colorTriggers && time >= m_colorTriggers->m_changes.begin()->first) return;
-
-    newColor.h += m_inheritedDelta.h;
-    newColor.h = fmod(newColor.h, 360.0f);
-
-    if (m_inheritedDelta.addS) newColor.s += m_inheritedDelta.s;
-    else newColor.s *= m_inheritedDelta.s;
-
-    newColor.s = std::clamp(newColor.s, 0.0f, 1.0f);
-
-    if (m_inheritedDelta.addV) newColor.v += m_inheritedDelta.v;
-    else newColor.v *= m_inheritedDelta.v;
-
-    newColor.v = std::clamp(newColor.v, 0.0f, 1.0f);
-
-    for (auto& channel : m_childChannels) {
-        channel->parentUpdated(newColor, time);
-    }
+    m_currColor = m_colorCopied && m_parentChannel ? m_parentChannel->valueFor(time).shift(m_inheritedDelta) : m_baseColor;
     
-    m_currColor = newColor.toRGBA();
-    updateTextureColor();
+    auto oldBlending = m_blending;
+    auto ret = valueFor(time);
+
+    m_blending = ret.m_blending;
+    m_currColor = ret;
+
+    if (oldBlending != m_blending) { // Re-sort
+        updateTextureBlending();
+        m_batcher->m_dirty = true;
+    }
+
+    if (m_currColor != m_textureColor) {
+        updateTextureColor();
+
+        HSVAColor hsvaState = m_currColor.toHSVA();
+        for (auto& channel : m_childChannels) {
+            channel->updateColor(time);
+        }
+    }
 }

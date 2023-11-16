@@ -53,6 +53,27 @@ RGBAColor HSVAColor::toRGBA() {
     return out;
 }
 
+HSVAColor HSVAColor::lerp(HSVAColor from, HSVAColor to, float t) {
+    HSVAColor out;
+
+    HSVAColor from2 = from;
+    HSVAColor to2 = to;
+
+    if (std::abs(from.h - to.h) > 180) {
+        if (from.h > to.h) {
+            from2.h -= 360;
+        } else {
+            to2.h -= 360;
+        }
+    }
+
+    out.h = from2.h + (to2.h - from2.h) * t;
+    out.s = from.s + (to.s - from.s) * t;
+    out.v = from.v + (to.v - from.v) * t;
+
+    return out;
+}
+
 RGBAColor RGBAColor::lerp(RGBAColor from, RGBAColor to, float t) {
     RGBAColor out;
 
@@ -104,5 +125,30 @@ HSVAColor RGBAColor::toHSVA() {
     }
 
     out.a = a;
+    return out;
+}
+
+RGBAColor RGBAColor::shift(HSVAColor shift) {
+    auto hsva = toHSVA();
+    auto shifted = hsva.shift(shift);
+    return shifted.toRGBA();
+}
+
+HSVAColor HSVAColor::shift(HSVAColor shift) {
+    HSVAColor out = *this;
+
+    out.h += shift.h;
+    out.h = fmod(out.h + 360.f, 360.0f);
+
+    if (shift.addS) out.s += shift.s;
+    else out.s *= shift.s;
+
+    out.s = std::clamp(out.s, 0.0f, 1.0f);
+
+    if (shift.addV) out.v += shift.v;
+    else out.v *= shift.v;
+
+    out.v = std::clamp(out.v, 0.0f, 1.0f);
+
     return out;
 }

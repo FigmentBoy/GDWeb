@@ -1,4 +1,3 @@
-#include "Triggers.hpp"
 #include "LevelLayer.hpp"
 #include "Director.hpp"
 #include "utils.hpp"
@@ -94,11 +93,15 @@ void LevelLayer::setupTriggers() {
         m_colorChannels[channel]->m_pulseTriggers = std::make_unique<GameEffect<PulseChange>>(PulseValue {{}});
         for (auto& [position, triggers] : changes) {
             for (auto& change : triggers) {
-                m_colorChannels[channel]->m_pulseTriggers->m_rawChanges[timeForX(position)].push_back(change);
+                change->m_position = timeForX(position);
+                m_colorChannels[channel]->m_pulseTriggers->m_rawChanges[change->m_position].push_back(change);
             }
         }
         m_colorChannels[channel]->m_pulseTriggers->setup();
-        m_colorChannelsWithPulseChanges.push_back(channel);
+
+        if (std::find(m_colorChannelsWithChanges.begin(), m_colorChannelsWithChanges.end(), channel) == m_colorChannelsWithChanges.end()) {
+            m_colorChannelsWithChanges.push_back(channel);
+        }
     }
     m_rawPulseChanges.clear();
 
@@ -152,10 +155,6 @@ void LevelLayer::setupTriggers() {
 void LevelLayer::updateTriggers(float time) {
     for (auto& channel : m_colorChannelsWithChanges) {
         m_colorChannels[channel]->updateColor(time);
-    }
-
-    for (auto& channel : m_colorChannelsWithPulseChanges) {
-        m_colorChannels[channel]->updatePulse(time);
     }
 
     for (auto& group : m_groupsWithAlphaChanges) {
@@ -248,6 +247,7 @@ void LevelLayer::parseColor(std::string colorString) {
     m_colorChannels[index]->m_inheritedDelta = inheritedDelta;
     if (copyColor != 0) {
         m_colorChannels[index]->m_colorCopied = true;
+        m_colorChannels[index]->m_parentChannel = m_colorChannels[copyColor];
         m_colorChannels[copyColor]->m_childChannels.push_back(m_colorChannels[index]);
     }
 }
@@ -347,12 +347,14 @@ void LevelLayer::parseLevelProperties() {
     }
 
     m_colorChannels[1000]->m_childChannels.push_back(m_colorChannels[1007]); // LBG (not LBJ (Lyndon B. Johnson)))
+    m_colorChannels[1007]->m_parentChannel = m_colorChannels[1000];
     m_colorChannels[1007]->m_blending = true;
 
     m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color; // P1
     m_colorChannels[1006]->m_currColor = ColorChannel::m_p2Color; // P2
 
-    m_colorChannels[1010]->m_currColor = {0, 0, 0}; // BLACK
+    m_colorChannels[1010]->m_baseColor = {0, 0, 0}; // BLACK
+    m_colorChannels[1010]->m_currColor = {0, 0, 0};
 }
 
 void LevelLayer::setupObjects() {
@@ -464,12 +466,15 @@ void LevelLayer::draw() {
     ImGui::Begin("Options");
 
     if (ImGui::ColorEdit4("P1 Color", &ColorChannel::m_p1Color.r)) {
-        m_colorChannels[1005]->m_currColor = ColorChannel::m_p1Color;
-        m_colorChannels[1007]->parentUpdated(m_colorChannels[1000]->m_currColor.toHSVA(), timeForX(camera->getPlayerX()));
+        float time = timeForX(camera->getPlayerX());
+        m_colorChannels[1005]->m_baseColor = ColorChannel::m_p1Color;
+        m_colorChannels[1005]->updateColor(time);
+        m_colorChannels[1007]->updateColor(time);
     };
 
     if (ImGui::ColorEdit4("P2 Color", &ColorChannel::m_p2Color.r)) {
-        m_colorChannels[1006]->m_currColor = ColorChannel::m_p2Color;
+        m_colorChannels[1006]->m_baseColor = ColorChannel::m_p1Color;
+        m_colorChannels[1006]->updateColor(timeForX(camera->getPlayerX()));
     };
 
     ImGui::Checkbox("Auto Scroll", &m_autoScroll);

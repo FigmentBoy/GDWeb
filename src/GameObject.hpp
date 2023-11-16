@@ -4,7 +4,11 @@
 #include "Color.hpp"
 #include "Sprite.hpp"
 #include "easing.h"
-#include "Triggers.hpp"
+
+#include "SpeedChange.hpp"
+#include "GroupTriggers.hpp"
+#include "ChannelTriggers.hpp"
+
 #include <nlohmann/json.hpp>
 
 class LevelLayer;
@@ -52,7 +56,7 @@ struct GameObjectProperties {
     float fadeOut;
 
     PulseType pulseType;
-    PulseChannel channelType;
+    PulseChannel channelType = PulseChannel::Color;
 
     HSVAColor pulseHSV;
     RGBAColor pulseRGB;

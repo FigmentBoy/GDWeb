@@ -48,6 +48,7 @@ public:
     inline static RGBAColor m_p1Color = {1, 0, 1};
     inline static RGBAColor m_p2Color = {0, 1, 0.5};
 
+    std::shared_ptr<ColorChannel> m_parentChannel;
     std::vector<std::shared_ptr<ColorChannel>> m_childChannels;
 
     std::unique_ptr<GameEffect<ColorChange>> m_colorTriggers;
@@ -57,12 +58,11 @@ public:
 
     ColorChannel() : m_currColor(1.0f, 1.0f, 1.0f, 1.0f), m_baseColor(1.0f, 1.0f, 1.0f, 1.0f), m_blending(false) {};
 
-    virtual void parentUpdated(HSVAColor parentColor, float time);
     void setBlending(bool blending);
     void updateColor(float time);
-    void updatePulse(float time);
 
-    RGBAColor valueFor(float time);
+    ColorChannelValue valueFor(float time);
+    ColorChannelValue valueForWithoutPulses(float time);
 
     void updateTextureColor();
     void updateTextureBlending();

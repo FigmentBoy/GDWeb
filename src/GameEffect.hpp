@@ -105,23 +105,28 @@ public:
     Type m_startingValue;
     
     Type m_cachedValue;
+
+    float m_prevCalc = -std::numeric_limits<float>::infinity();
     float m_cachedValueMin = std::numeric_limits<float>::infinity();
     float m_cachedValueMax = -std::numeric_limits<float>::infinity();
 
     BaseGameEffect(Type startingValue) : m_startingValue(startingValue) {}
 
     virtual Type valueFor(float x) {
-        if (x > m_cachedValueMin && x < m_cachedValueMax) {
+        if (x == m_prevCalc || (x > m_cachedValueMin && x < m_cachedValueMax)) {
             return m_cachedValue;
         }
+
+        m_prevCalc = x;
 
         typename std::map<float, std::shared_ptr<Changer>>::iterator lowerBound = m_changes.lower_bound(x);
         if (lowerBound == m_changes.begin()) {
             std::unique_ptr<Changer> changer = std::make_unique<Changer>(m_startingValue);
 
-            if (x < changer->m_cacheAfter) return changer->valueFor(x);
-        
             m_cachedValue = changer->valueFor(x);
+
+            if (x < changer->m_cacheAfter) return m_cachedValue;
+        
             m_cachedValueMin = changer->m_cacheAfter;
             m_cachedValueMax = lowerBound->first;
 
@@ -130,9 +135,9 @@ public:
 
         auto iter = std::prev(lowerBound);
 
-        if (x < iter->first + iter->second->m_cacheAfter) return iter->second->valueFor(x - iter->first);
-
         m_cachedValue = iter->second->valueFor(x - iter->first);
+
+        if (x < iter->first + iter->second->m_cacheAfter) return m_cachedValue;
 
         m_cachedValueMin = iter->first + iter->second->m_cacheAfter;
         if (lowerBound == m_changes.end()) m_cachedValueMax = std::numeric_limits<float>::infinity();

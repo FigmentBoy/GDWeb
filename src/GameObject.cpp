@@ -3,9 +3,7 @@
 #include "utils.hpp"
 #include "Sprite.hpp"
 #include "LevelLayer.hpp"
-#include "Triggers.hpp"
 #include "SpriteFrameCache.hpp"
-#include <fstream>
 
 json GameObject::m_gameObjectsJson;
 
@@ -15,7 +13,7 @@ void GameObject::loadGameObjectsJson() {
 }
 
 void GameObject::setupColorTrigger(int channel) {
-    if (m_properties->copyChannelID > 0) {
+    if (m_properties->copyChannelID != -1) {
         m_layer->m_rawColorChanges[channel].insert({m_position.x, ColorChange::copyColorChange(m_layer->m_colorChannels[m_properties->copyChannelID], m_properties->copyChannelDelta, std::max(0.0f, m_properties->duration), m_properties->toColorBlending)});
     } else {
         m_layer->m_rawColorChanges[channel].insert({m_position.x, std::make_shared<ColorChange>(ColorChannelValue {m_properties->toColor, m_properties->toColorBlending}, std::max(0.0f, m_properties->duration))});
@@ -310,8 +308,8 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 layer->m_rawPositionChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PositionChange>(PositionValue {m_properties->movePosition}, std::max(0.0f, m_properties->duration), m_properties->function, m_properties->rate, m_position.x, m_properties->lockPlayerX, layer));
                 break;
             case 1006:
-                if (m_properties->targetChannel < 0 || m_properties->channelType == PulseChannel::Group) break; // Groups hurt my brain
-                layer->m_rawPulseChanges[m_properties->targetChannel][m_position.x].push_back(std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, layer->m_colorChannels[m_properties->copyChannelID > 0 ? m_properties->copyChannelID : m_properties->targetChannel], m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut, m_position.x));
+                if (m_properties->channelType == PulseChannel::Group) break; // Groups hurt my brain
+                layer->m_rawPulseChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, layer->m_colorChannels[m_properties->targetGroup], m_properties->copyChannelID > 0 ? layer->m_colorChannels[m_properties->copyChannelID] : nullptr, m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut));
                 break;
             case 1007:
                 if (m_properties->targetGroup < 0) break;

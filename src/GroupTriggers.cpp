@@ -1,5 +1,14 @@
-#include "Triggers.hpp"
+#include "GroupTriggers.hpp"
 #include "LevelLayer.hpp"
+
+AlphaValue AlphaChange::valueFor(float x) {
+    if (m_duration == 0.0f) return m_toValue;
+    return {std::lerp(m_fromValue.val, m_toValue.val, std::min(x / m_duration, 1.0f))};
+}
+
+ToggleValue ToggleChange::valueFor(float x) {
+    return m_toValue;
+}
 
 PositionValue PositionChange::finalValue(PositionValue startValue) {
     return {startValue.val + m_toValue.val};
