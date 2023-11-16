@@ -39,7 +39,7 @@ if (EMSCRIPTEN)
         -sALLOW_MEMORY_GROWTH=1 
         -sWASM=1 -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=5 
         -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sUSE_WEBGL2=1 
-        -sUSE_GLFW=3 
+        -sUSE_GLFW=3 -sTEXTDECODER=0 
         --preload-file ../static "
     )
 else()

@@ -23,14 +23,22 @@ struct LoadSpriteArgs {
 void* loadSpriteFrames(void* args) {
     auto [cache, layer, path, slot, percent, increaseBy] = *(LoadSpriteArgs*)args;
     cache->loadSpriteFramesFromPlist(path, slot, layer);
+
+    layer->m_mutex.lock();
     *percent += increaseBy;
+    layer->m_mutex.unlock();
+    
     return NULL;
 }
 
 void* loadSprite(void* args) {
     auto [cache, layer, path, slot, percent, increaseBy] = *(LoadSpriteArgs*)args;
     cache->loadSprite(path, slot, layer);
+
+    layer->m_mutex.lock();
     *percent += increaseBy;
+    layer->m_mutex.unlock();
+
     return NULL;
 }
 
