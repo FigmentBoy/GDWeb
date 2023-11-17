@@ -1,4 +1,6 @@
 #include "LevelLayer.hpp"
+
+#include <emscripten.h>
 #include "Director.hpp"
 #include "utils.hpp"
 
@@ -17,6 +19,10 @@
 LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level), m_loadingLayer(loadingLayer) {
     Director::get()->m_camera->m_position = {-512, -128};
     m_prevMousePos = Director::get()->m_mousePosition;
+
+    MAIN_THREAD_EM_ASM({
+        Module.audio = new Audio('/audio/' + $0);
+    }, m_level->m_audioTrack);
 
     if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.05f;
     parseLevelString();
@@ -285,7 +291,9 @@ void LevelLayer::parseLevelProperties() {
     }
 
     for (auto& [key, value] : m_levelProperties) {
-        if (key == "kA4") {
+        if (key == "kA13") {
+            m_songOffset = std::stof(value);
+        } else if (key == "kA4") {
             switch (std::stoi(value)) {
                 default:
                 case 0:
@@ -385,7 +393,21 @@ void LevelLayer::onMouseClick(int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         if (action == GLFW_PRESS) {
             m_autoScroll = !m_autoScroll;
+            toggleAutoScroll();
         }
+    }
+}
+
+void LevelLayer::toggleAutoScroll() {
+    if (m_autoScroll) {
+        EM_ASM({
+            Module.audio.currentTime = $0;
+            Module.audio.play();
+        }, timeForX(Director::get()->m_camera->getPlayerX()) + m_songOffset);
+    } else {
+        EM_ASM({
+            Module.audio.pause();
+        });
     }
 }
 
@@ -400,11 +422,19 @@ void LevelLayer::onMouseScroll(double xoffset, double yoffset) {
 
     float lockX = m_autoScroll ? camera->getPlayerX() - camera->m_position.x : Director::get()->m_mousePosition.x;
 
-    camera->m_position.x += (lockX * (1.f - ratioX)) * camera->m_viewScale.x;
-    camera->m_position.y += (Director::get()->m_mousePosition.y * (1.f - ratioY)) * camera->m_viewScale.y;
+    float deltaX = (lockX * (1.f - ratioX)) * camera->m_viewScale.x;
+    float deltaY = (Director::get()->m_mousePosition.y * (1.f - ratioY)) * camera->m_viewScale.y;
 
-    if (camera->m_position.x < -512) camera->m_position.x = -512;
-    if (camera->m_position.y < -128) camera->m_position.y = -128;
+    camera->m_position.x += deltaX;
+    camera->m_position.y += deltaY;
+
+    if (camera->m_position.y < -128) {
+        float oldPos = camera->m_position.y;
+        float delta = -128 - camera->m_position.y;
+
+        camera->m_position.y += delta;
+        camera->m_position.x -= delta / deltaY * deltaX;
+    }
 
     camera->m_viewScale.x -= yoffset * 0.1f;
     camera->m_viewScale.y -= yoffset * 0.1f;
@@ -449,7 +479,6 @@ void LevelLayer::update(float delta) {
         camera->m_position.y -= (Director::get()->m_mousePosition.y - m_prevMousePos.y) * camera->m_viewScale.y;
 
         if (camera->m_position.x < -512) camera->m_position.x = -512;
-        if (camera->m_position.y < -128) camera->m_position.y = -128;
     }
 
     if (m_prevX != currX) {
@@ -479,7 +508,9 @@ void LevelLayer::draw() {
         m_colorChannels[1006]->updateColor(timeForX(camera->getPlayerX()));
     };
 
-    ImGui::Checkbox("Auto Scroll", &m_autoScroll);
+    if (ImGui::Checkbox("Auto Scroll", &m_autoScroll)) {
+        toggleAutoScroll();
+    }
 
     ImGui::End();
 }

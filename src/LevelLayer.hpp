@@ -21,6 +21,8 @@ class LoadingLayer;
 
 class LevelLayer : public Node {
 public:
+    float m_songOffset;
+
     std::unique_ptr<Level> m_level;
 
     bool m_mouseDown = false;
@@ -82,4 +84,6 @@ public:
     
     void onMouseClick(int button, int action, int mods);
     void onMouseScroll(double xoffset, double yoffset);
+
+    void toggleAutoScroll();
 };
