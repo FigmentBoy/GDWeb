@@ -22,6 +22,7 @@ LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level
 
     MAIN_THREAD_EM_ASM({
         Module.audio = new Audio('/audio/' + $0);
+        Module.audio.load();
     }, m_level->m_audioTrack);
 
     if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.05f;
@@ -401,12 +402,25 @@ void LevelLayer::onMouseClick(int button, int action, int mods) {
 
 void LevelLayer::toggleAutoScroll() {
     if (m_autoScroll) {
-        EM_ASM({
-            Module.audio.currentTime = $0;
-            Module.audio.play();
-        }, timeForX(Director::get()->m_camera->getPlayerX()) + m_songOffset);
+        float startTime = timeForX(Director::get()->m_camera->getPlayerX()) + m_songOffset;
+
+        if (startTime < 0) {
+            EM_ASM({
+                Module.audio.currentTime = 0;
+
+                Module.audioTimeout = setTimeout(function() {
+                    Module.audio.play();
+                }, -$0 * 1000);
+            }, startTime);
+        } else {
+            EM_ASM({
+                Module.audio.currentTime = $0;
+                Module.audio.play();
+            }, startTime);
+        }
     } else {
         EM_ASM({
+            clearTimeout(Module.audioTimeout);
             Module.audio.pause();
         });
     }
@@ -416,25 +430,19 @@ void LevelLayer::onMouseScroll(double xoffset, double yoffset) {
     // Zoom in/out, offsetting the camera position so the mouse is in the same spot (satisfying!)
     auto camera = Director::get()->m_camera;
 
-    if (yoffset > 0.0f && (camera->m_viewScale.x <= 0.1f || camera->m_viewScale.y <= 0.1f)) return;
+    if (yoffset > 0.0f && (camera->m_viewScale.x <= 0.2f || camera->m_viewScale.y <= 0.2f)) return;
 
     float ratioX = (camera->m_viewScale.x - yoffset * 0.1f) / camera->m_viewScale.x;
     float ratioY = (camera->m_viewScale.y - yoffset * 0.1f) / camera->m_viewScale.y;
 
-    float lockX = m_autoScroll ? camera->getPlayerX() - camera->m_position.x : Director::get()->m_mousePosition.x;
+    float lockX = m_autoScroll ? (camera->getPlayerX() - camera->m_position.x) / camera->m_viewScale.x : Director::get()->m_mousePosition.x;
+    float lockY = Director::get()->m_mousePosition.y;
 
-    float deltaX = (lockX * (1.f - ratioX)) * camera->m_viewScale.x;
-    float deltaY = (Director::get()->m_mousePosition.y * (1.f - ratioY)) * camera->m_viewScale.y;
-
-    camera->m_position.x += deltaX;
-    camera->m_position.y += deltaY;
+    camera->m_position.x += (lockX * (1.f - ratioX)) * camera->m_viewScale.x;
+    camera->m_position.y += (lockY * (1.f - ratioY)) * camera->m_viewScale.y;
 
     if (camera->m_position.y < -128) {
-        float oldPos = camera->m_position.y;
-        float delta = -128 - camera->m_position.y;
-
-        camera->m_position.y += delta;
-        camera->m_position.x -= delta / deltaY * deltaX;
+        camera->m_position.y = -128;
     }
 
     camera->m_viewScale.x -= yoffset * 0.1f;
@@ -450,16 +458,18 @@ void LevelLayer::update(float delta) {
 
     if (!m_setup) {
         m_setup = true;
+
+        float time = std::max(currTime, 0.0f);
         for (auto& colorChannel : m_colorChannels) {
             colorChannel->updateTextureColor();
             colorChannel->updateTextureBlending();
-            colorChannel->updateColor(currTime);
+            colorChannel->updateColor(time);
         }
 
         for (auto& group : m_groups) {
-            group->updateAlphaTriggers(currTime);
-            group->updatePositionChanges(currTime);
-            group->updateToggleChanges(currTime);
+            group->updateAlphaTriggers(time);
+            group->updatePositionChanges(time);
+            group->updateToggleChanges(time);
         }
 
         for (auto& groupGroup : GroupGroup::m_groupGroups) {

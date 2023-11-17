@@ -18,20 +18,24 @@ file(GLOB SOURCES
     "include/easing-functions/src/*.cpp"
 )
 
-if(EMSCRIPTEN)
-    make_directory("${CMAKE_SOURCE_DIR}/bin")
-    configure_file("${CMAKE_SOURCE_DIR}/dist/WebEditor.html" "${CMAKE_SOURCE_DIR}/bin/index.html" COPYONLY)
-endif()
-
 add_executable(WebEditor ${SOURCES})
 
 file(GLOB RESOURCES 
+    "static/*"
     "static/**/*"
+    "dist/*"
+    "dist/**/*"
 )
 
 if (EMSCRIPTEN)
-    target_compile_options(WebEditor PUBLIC -pthread)
+    add_custom_command(
+        TARGET WebEditor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${CMAKE_SOURCE_DIR}/dist
+            ${CMAKE_SOURCE_DIR}/bin
+    )
 
+    target_compile_options(WebEditor PUBLIC -pthread)
     set_target_properties(WebEditor PROPERTIES LINK_DEPENDS "${RESOURCES}")
 
     # We cannot use offscreen canvas with pthreads

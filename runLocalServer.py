@@ -34,8 +34,8 @@ def send_audio(path):
         "Range": request.headers.get("Range"),
     }
     
-    resp = requests.get(downloadPath, headers=headers) # This is unsafe but it's just a local server
-    return resp.content, resp.status_code, resp.headers.items()
+    res = requests.get(downloadPath, headers=headers)
+    return res.content, res.status_code, res.headers.items()
 
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')
