@@ -158,7 +158,8 @@ void LevelLayer::setupTriggers() {
     m_stopTriggerLocations.clear();
 }
 
-void LevelLayer::updateTriggers(float time) {
+void LevelLayer::updateTriggers(float rawTime) {
+    float time = std::max(rawTime, 0.0f);
     for (auto& channel : m_colorChannelsWithChanges) {
         m_colorChannels[channel]->updateColor(time);
     }
@@ -478,7 +479,7 @@ void LevelLayer::update(float delta) {
         if (!m_autoScroll) camera->m_position.x -= (Director::get()->m_mousePosition.x - m_prevMousePos.x) * camera->m_viewScale.x;
         camera->m_position.y -= (Director::get()->m_mousePosition.y - m_prevMousePos.y) * camera->m_viewScale.y;
 
-        if (camera->m_position.x < -512) camera->m_position.x = -512;
+        if (camera->m_position.y < -128) camera->m_position.y = -128;
     }
 
     if (m_prevX != currX) {
