@@ -59,7 +59,7 @@ vec4 shiftHSV(vec4 color, float h, float s, float v, bool addS, bool addV) {
 }
 
 void main() {
-    float blendingVal = texelFetch(colorTexture, ivec2(1, color), 0).r;
+    float blendingVal = texelFetch(colorTexture, ivec2(1, color), 0).x;
     bool additiveBlending = blendingVal > 0.5;
 
     if (blending < 1.5) {
@@ -105,6 +105,10 @@ void main() {
             break;
     }
 
-    fragColor.rgb *= fragColor.a;
-    if (additiveBlending) fragColor.a = 0.0;
+    if (additiveBlending) {
+        fragColor.rgb *= clamp(0.175656971639325 * pow(7.06033051530761, fragColor.a) - 0.213355914301931, 0.0, 1.0); // Big thanks to Opstic
+        fragColor.a = 0.0;
+    } else {
+        fragColor.rgb *= fragColor.a;
+    }
 }
