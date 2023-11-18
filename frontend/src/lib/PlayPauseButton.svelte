@@ -33,7 +33,7 @@
 </script>
 
 {#if inLevel}
-    <Card on:click={playing ? pause : play} class="fixed top-4 right-4 cursor-pointer h-12 w-12 flex justify-center content-center">
+    <Card on:click={playing ? pause : play} class="fixed top-4 right-4 cursor-pointer h-12 w-12 flex justify-center items-center">
         <i class="fas {playing ? 'fa-pause' : 'fa-play'}" />
     </Card>
 {/if}

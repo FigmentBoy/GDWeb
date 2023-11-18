@@ -2,7 +2,8 @@
 	import LoadingIndicator from './lib/LoadingIndicator.svelte';
   import Renderer from "./lib/Renderer.svelte";
   import Menu from "./lib/Menu.svelte";
-    import PlayPauseButton from './lib/PlayPauseButton.svelte';
+  import PlayPauseButton from './lib/PlayPauseButton.svelte';
+  import Github from './lib/Github.svelte';
 
   let initialized: boolean = false;
 </script>
@@ -12,5 +13,6 @@
 <PlayPauseButton />
 {/if}
 
+<Github />
 <LoadingIndicator bind:initialized />
 <Renderer />
