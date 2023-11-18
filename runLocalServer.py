@@ -60,7 +60,7 @@ def search(string):
         "gameVersion": "21",
         "binaryVersion": "35",
         "secret": "Wmfd2893gb7",
-        "str": string,
+        "str": urllib.parse.unquote(string),
         "type": "0",
     }
     
