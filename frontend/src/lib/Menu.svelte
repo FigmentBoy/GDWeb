@@ -21,6 +21,9 @@
     let onSearch = async (query: string) => {
         const response = await fetch(`/search/${encodeURIComponent(query)}`).then(async response => await response.text());
         levels = response.split("#")[0].split("|").map(level => new LevelObject(level));
+        
+        const levellist = document.getElementById("levellist");
+        if (levellist) levellist.scrollTop = 0;
     }
 
     let levels: LevelObject[] = [];
@@ -49,7 +52,7 @@
         <SearchBar placeholder={"Level Name or ID"} {onSearch} />
         {#if levels.length != 0}
             <Divider />
-            <div class="levellist overflow-y-auto overflow-x-visible flex flex-col gap-2 p-4">
+            <div class="levellist overflow-y-auto overflow-x-visible flex flex-col gap-2 p-4" id="levellist">
                 {#each levels as level}
                     <Level on:click={()=>{loadLevel(level)}} {level} />
                 {/each}
