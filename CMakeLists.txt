@@ -30,8 +30,8 @@ if (EMSCRIPTEN)
 
     # We cannot use offscreen canvas with pthreads
     set_target_properties(WebEditor PROPERTIES LINK_FLAGS "${LINK_FLAGS} 
-        -sALLOW_MEMORY_GROWTH=1 
-        -sWASM=1 -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=5 
+        -sTOTAL_MEMORY=512MB 
+        -sWASM=1 -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 
         -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sUSE_WEBGL2=1 
         -sUSE_GLFW=3 -sTEXTDECODER=0 
         -sEXPORTED_FUNCTIONS=_main,_loadLevel,_play,_pause 
