@@ -30,11 +30,7 @@ export class LevelObject {
                     this.name = value;
                     break;
                 case "3":
-                    try {
-                        this.description = atob(value);
-                    } catch {
-                        this.description = value;
-                    }
+                    this.description = atob(value.replace(/_/g, "/").replace(/-/g, "+"));
                     break;
                 case "4":
                     this.levelString = value;
