@@ -60,11 +60,20 @@ void Batcher::setData() {
     if (!m_dirty) return;
     m_dirty = false;
 
-    std::sort(m_sprites.begin(), m_sprites.end(), [](std::shared_ptr<Sprite> a, std::shared_ptr<Sprite> b) {
-        if (a->m_batchZLayer != b->m_batchZLayer) return a->m_batchZLayer < b->m_batchZLayer;
-        if (a->m_colorChannelPtr->m_blending != b->m_colorChannelPtr->m_blending) return a->m_colorChannelPtr->m_blending;
-        return a->m_zOrder < b->m_zOrder;
-    });
+    std::map<float, std::vector<std::shared_ptr<Sprite>>> zLayers;
+
+    for (auto sprite : m_sprites) {
+        if (!sprite->m_visible) continue;
+        if (sprite->m_currentBatcher != this) continue;
+
+        zLayers[sprite->m_batchZLayer].push_back(sprite);
+    }
+
+    for (auto& [layer, sprites] : zLayers) {
+        std::sort(sprites.begin(), sprites.end(), [](std::shared_ptr<Sprite> a, std::shared_ptr<Sprite> b) {
+            return a->m_zOrder < b->m_zOrder;
+        });
+    }
 
     std::vector<GLfloat> vboData = std::vector<GLfloat>();
     std::vector<GLuint> eboData = std::vector<GLuint>();
@@ -75,32 +84,67 @@ void Batcher::setData() {
     };
 
     int n = 0;
-    for (int i = 0; i < m_sprites.size(); i++) {
-        std::shared_ptr<Sprite> sprite = m_sprites[i];
+    std::vector<std::shared_ptr<Sprite>> nonBlendingSprites;
 
-        sprite->recurseChildrenWithDepth([&](std::shared_ptr<Node> node) {
-            if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
-                if (sprite->m_currentBatcher != this) return;
-                if (!sprite->m_visible) return;
-                
-                GLuint indicies[6];
-                for (int j = 0; j < 6; j++) {
-                    indicies[j] = templateIndices[j] + (n * 4);
+    for (auto& [layer, sprites] : zLayers) {
+        for (auto sprite : sprites) {
+            if (!sprite->m_visible) continue;
+            if (sprite->m_currentBatcher != this) continue;
+
+            sprite->recurseChildrenWithDepth([&](std::shared_ptr<Node> node) {
+                if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
+                    if (!sprite->m_visible) return;
+                    if (sprite->m_currentBatcher != this) return;
+                        
+                    GLuint indicies[6];
+                    for (int j = 0; j < 6; j++) {
+                        indicies[j] = templateIndices[j] + (n * 4);
+                    }
+
+                    sprite->updateVertices(BlendingType::On);
+
+                    vboData.resize((n + 1) * 12 * 4);
+                    memcpy(vboData.data() + (n * 12 * 4), sprite->m_verticies, sizeof(GLfloat) * 12 * 4);
+
+                    eboData.resize((n + 1) * 6);
+                    memcpy(eboData.data() + (n * 6), indicies, sizeof(GLuint) * 6);
+
+                    n++;
                 }
+            });
+        }
 
-                vboData.resize((n + 1) * 11 * 4);
-                eboData.resize((n + 1) * 6);
+        for (auto sprite : sprites) {
+            if (!sprite->m_visible) continue;
+            if (sprite->m_currentBatcher != this) continue;
 
-                memcpy(vboData.data() + (n * 11 * 4), sprite->m_verticies, sizeof(GLfloat) * 11 * 4);
-                memcpy(eboData.data() + (n * 6), indicies, sizeof(GLuint) * 6);
+            sprite->recurseChildrenWithDepth([&](std::shared_ptr<Node> node) {
+                if (std::shared_ptr<Sprite> sprite = std::dynamic_pointer_cast<Sprite>(node)) {
+                    if (!sprite->m_visible) return;
+                    if (sprite->m_currentBatcher != this) return;
+                        
+                    GLuint indicies[6];
+                    for (int j = 0; j < 6; j++) {
+                        indicies[j] = templateIndices[j] + (n * 4);
+                    }
 
-                n++;
-            }
-        });
+                    sprite->updateVertices(BlendingType::Off);
+
+                    vboData.resize((n + 1) * 12 * 4);
+                    memcpy(vboData.data() + (n * 12 * 4), sprite->m_verticies, sizeof(GLfloat) * 12 * 4);
+
+                    eboData.resize((n + 1) * 6);
+                    memcpy(eboData.data() + (n * 6), indicies, sizeof(GLuint) * 6);
+
+                    n++;
+                }
+            });
+        }
     }
 
-    m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 11 * 4);
-    m_ebo->setIndices(eboData.data(), n * sizeof(GLuint)  * 6);
+    m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 12 * 4);
+    m_ebo->setIndices(eboData.data(), n * sizeof(GLuint) * 6);
+
     numRendered = n;
 }
 
@@ -114,12 +158,13 @@ void Batcher::update(float dt) {
         m_vbo = std::make_unique<VBO>();
         m_ebo = std::make_unique<EBO>();
 
-        m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)0);
-        m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 12 * sizeof(GLfloat), (void*)0);
+        m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 6, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(11 * sizeof(GLfloat)));
     }
 
     if (m_dirty) Node::update(dt);

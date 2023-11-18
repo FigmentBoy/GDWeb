@@ -1,5 +1,6 @@
 #include "Sprite.hpp"
 #include "Director.hpp"
+#include "ColorChannel.hpp"
 
 #include "GL/glew.h"
 #include <glm/gtc/type_ptr.hpp>
@@ -29,12 +30,13 @@ void Sprite::update(float delta) {
 
         m_ebo->setIndices(m_indicies, sizeof(m_indicies));
 
-        m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)0);
-        m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 11 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 12 * sizeof(GLfloat), (void*)0);
+        m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 6, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(11 * sizeof(GLfloat)));
 
         m_vao->unbind();
         m_vbo->unbind();
@@ -42,7 +44,7 @@ void Sprite::update(float delta) {
     }
     
     Node::update(delta);
-    updateVertices();
+    if (m_dirty) updateVertices();
 }
 
 void Sprite::draw() {
@@ -72,8 +74,7 @@ void Sprite::removeFromBatcher() {
     }
 }
 
-void Sprite::updateVertices() {
-    if (!m_dirty) return;
+void Sprite::updateVertices(BlendingType blendingType) {
     m_dirty = false;
     m_dirtyColor = false;
 
@@ -92,25 +93,27 @@ void Sprite::updateVertices() {
 
     float slot = m_textureIndex;
     float checkVal = m_hasColorDelta ? ((m_colorDelta.addS ? 1.f : 0.f) + (m_colorDelta.addV ? 0.5f : 1.f)) : 0.0f;
-
+    float channelIndex = m_colorChannel ? m_colorChannel->m_index : 0.0f;
+    float blending = static_cast<float>(blendingType);
+    
     if (m_spriteFrame->m_rotated) {
-        GLfloat verticies[44] = {     
-            bottomLeftTransformed.x,  bottomLeftTransformed.y,   	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.bottom(),       m_colorChannel,   m_groupGroupIndex,    slot,   m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,     checkVal, // Lower left corner
-            topLeftTransformed.x,     topLeftTransformed.y,      	m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.bottom(),       m_colorChannel,   m_groupGroupIndex,    slot,   m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,     checkVal, // Upper left corner
-            topRightTransformed.x,    topRightTransformed.y,        m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.top(),          m_colorChannel,   m_groupGroupIndex,    slot,   m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,     checkVal, // Upper right corner
-            bottomRightTransformed.x, bottomRightTransformed.y,     m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.top(),          m_colorChannel,   m_groupGroupIndex,    slot,   m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,     checkVal, // Lower right corner
+        GLfloat verticies[48] = {     
+            bottomLeftTransformed.x,  bottomLeftTransformed.y,   	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.bottom(),       channelIndex,   m_groupGroupIndex,    slot,   m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,     checkVal,    blending, // Lower left corner
+            topLeftTransformed.x,     topLeftTransformed.y,      	m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.bottom(),       channelIndex,   m_groupGroupIndex,    slot,   m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,     checkVal,    blending, // Upper left corner
+            topRightTransformed.x,    topRightTransformed.y,        m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.top(),          channelIndex,   m_groupGroupIndex,    slot,   m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,     checkVal,    blending, // Upper right corner
+            bottomRightTransformed.x, bottomRightTransformed.y,     m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.top(),          channelIndex,   m_groupGroupIndex,    slot,   m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,     checkVal,    blending, // Lower right corner
         };
 
-        for (int i = 0; i < 44; i++) m_verticies[i] = verticies[i];
+        for (int i = 0; i < 48; i++) m_verticies[i] = verticies[i];
     } else {
-        GLfloat verticies[44] = { 
-            bottomLeftTransformed.x,  bottomLeftTransformed.y,   	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.top(),          m_colorChannel,   m_groupGroupIndex,    slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,      checkVal, // Lower left corner
-            topLeftTransformed.x,     topLeftTransformed.y,      	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.bottom(),       m_colorChannel,   m_groupGroupIndex,    slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,      checkVal, // Upper left corner
-            topRightTransformed.x,    topRightTransformed.y,        m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.bottom(),       m_colorChannel,   m_groupGroupIndex,    slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,      checkVal, // Upper right corner
-            bottomRightTransformed.x, bottomRightTransformed.y,     m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.top(),          m_colorChannel,   m_groupGroupIndex,    slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,      checkVal, // Lower right corner
+        GLfloat verticies[48] = { 
+            bottomLeftTransformed.x,  bottomLeftTransformed.y,   	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.top(),          channelIndex,   m_groupGroupIndex,    slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,      checkVal,    blending, // Lower left corner
+            topLeftTransformed.x,     topLeftTransformed.y,      	m_spriteFrame->m_texCoords.left(),  m_spriteFrame->m_texCoords.bottom(),       channelIndex,   m_groupGroupIndex,    slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,      checkVal,    blending, // Upper left corner
+            topRightTransformed.x,    topRightTransformed.y,        m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.bottom(),       channelIndex,   m_groupGroupIndex,    slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,      checkVal,    blending, // Upper right corner
+            bottomRightTransformed.x, bottomRightTransformed.y,     m_spriteFrame->m_texCoords.right(), m_spriteFrame->m_texCoords.top(),          channelIndex,   m_groupGroupIndex,    slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v,      checkVal,    blending, // Lower right corner
         };
 
-        for (int i = 0; i < 44; i++) m_verticies[i] = verticies[i];
+        for (int i = 0; i < 48; i++) m_verticies[i] = verticies[i];
     }
 
     if (!m_currentBatcher) m_vbo->setVertices(m_verticies, sizeof(m_verticies));

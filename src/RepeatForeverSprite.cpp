@@ -1,10 +1,10 @@
 #include "RepeatForeverSprite.hpp"
 #include "Director.hpp"
+#include "ColorChannel.hpp"
 
 #include <iostream>
 
-void RepeatForeverSprite::updateVertices() {
-    if (!m_dirty) return;
+void RepeatForeverSprite::updateVertices(BlendingType blendingType) {
     m_dirty = false;
     m_dirtyColor = false;
 
@@ -30,15 +30,17 @@ void RepeatForeverSprite::updateVertices() {
 
     float slot = m_spriteFrame->m_texture->m_slot - GL_TEXTURE0;
     float checkVal = m_hasColorDelta ? ((m_colorDelta.addS ? 1.f : 0.f) + (m_colorDelta.addV ? 0.5f : 1.f)) : 0.0f;
-    
-    GLfloat verticies[44] = { 
-        bottomLeftTransformed.x,               bottomLeftTransformed.y,                    	   0,      1,    m_colorChannel,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal, // Lower left corner
-        bottomLeftTransformed.x,               bottomLeftTransformed.y + m_lockedHeight,       0,      0,    m_colorChannel,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal, // Upper left corner
-        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y + m_lockedHeight,       times,  0,    m_colorChannel,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal, // Upper right corner
-        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y,                        times,  1,    m_colorChannel,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal, // Lower right corner
+    float channelIndex = m_colorChannel->m_index;
+    float blending = static_cast<float>(blendingType);
+
+    GLfloat verticies[48] = { 
+        bottomLeftTransformed.x,               bottomLeftTransformed.y,                    	   0,      1,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending, // Lower left corner
+        bottomLeftTransformed.x,               bottomLeftTransformed.y + m_lockedHeight,       0,      0,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending, // Upper left corner
+        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y + m_lockedHeight,       times,  0,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending, // Upper right corner
+        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y,                        times,  1,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending, // Lower right corner
     };
 
-    for (int i = 0; i < 44; i++) m_verticies[i] = verticies[i];
+    for (int i = 0; i < 48; i++) m_verticies[i] = verticies[i];
 
     if (!m_currentBatcher) m_vbo->setVertices(m_verticies, sizeof(m_verticies));
 }

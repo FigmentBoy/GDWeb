@@ -14,12 +14,17 @@
 
 class ColorChannel;
 
+enum class BlendingType {
+    Off = 0,
+    On = 1,
+    Ignore = 2
+};
+
 class Sprite : public Node {
 public:
-    GLfloat m_colorChannel;
     GLfloat m_groupGroupIndex = 0;
 
-    std::shared_ptr<ColorChannel> m_colorChannelPtr;
+    std::shared_ptr<ColorChannel> m_colorChannel;
     bool m_hasColorDelta = false;
     HSVAColor m_colorDelta = {0, 1, 1};
 
@@ -35,7 +40,7 @@ public:
     std::unique_ptr<EBO> m_ebo;
     bool m_setup = false;
     
-    GLfloat m_verticies[44];
+    GLfloat m_verticies[48];
     GLuint m_indicies[6] = {
         0, 2, 1, // Upper triangle
         0, 3, 2 // Lower triangle
@@ -50,7 +55,7 @@ public:
 
     void update(float delta);
     void draw();
-    virtual void updateVertices();
+    virtual void updateVertices(BlendingType blendingType = BlendingType::Ignore);
     
     bool m_dirty = true;
     bool m_dirtyColor = false;

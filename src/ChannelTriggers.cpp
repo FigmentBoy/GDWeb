@@ -1,10 +1,12 @@
 #include "ChannelTriggers.hpp"
 #include "ColorChannel.hpp"
 
-std::unique_ptr<ColorChange> ColorChange::copyColorChange(std::shared_ptr<ColorChannel> channelToCopy, HSVAColor inheritedDelta, float duration, float blending) {
+std::unique_ptr<ColorChange> ColorChange::copyColorChange(std::shared_ptr<ColorChannel> channelToCopy, HSVAColor inheritedDelta, float duration, bool blending, bool copyOpacity, float opacity) {
     std::unique_ptr<ColorChange> result = std::make_unique<ColorChange>();
 
     result->m_copyColor = true;
+    result->m_copyOpacity = copyOpacity;
+    result->m_toValue.a = opacity;
     result->m_channelToCopy = channelToCopy;
     result->m_inheritedDelta = inheritedDelta;
     result->m_duration = duration;
@@ -21,7 +23,9 @@ ColorChannelValue ColorChange::valueFor(float x) {
 
         if (m_lastBase != baseColor) {
             m_lastBase = baseColor;
+            float alpha = m_copyOpacity ? baseColor.a : m_toValue.a;
             m_toValue = {baseColor.shift(m_inheritedDelta), m_toValue.m_blending};
+            m_toValue.a = alpha;
         }
     }
 

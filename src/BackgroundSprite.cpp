@@ -14,7 +14,7 @@ BackgroundSprite::BackgroundSprite(int index, LevelLayer* layer) {
     m_sprite->m_position = {0, 0};
     addChild(m_sprite);
 
-    m_sprite->m_colorChannel = 1000;
+    m_sprite->m_colorChannel = layer->m_colorChannels[1000];
 }
 
 void BackgroundSprite::update(float delta) {

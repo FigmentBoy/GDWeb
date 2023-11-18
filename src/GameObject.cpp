@@ -14,7 +14,7 @@ void GameObject::loadGameObjectsJson() {
 
 void GameObject::setupColorTrigger(int channel) {
     if (m_properties->copyChannelID != -1) {
-        m_layer->m_rawColorChanges[channel].insert({m_position.x, ColorChange::copyColorChange(m_layer->m_colorChannels[m_properties->copyChannelID], m_properties->copyChannelDelta, std::max(0.0f, m_properties->duration), m_properties->toColorBlending)});
+        m_layer->m_rawColorChanges[channel].insert({m_position.x, ColorChange::copyColorChange(m_layer->m_colorChannels[m_properties->copyChannelID], m_properties->copyChannelDelta, std::max(0.0f, m_properties->duration), m_properties->toColorBlending, m_properties->copyOpacity, m_properties->toColor.a)});
     } else {
         m_layer->m_rawColorChanges[channel].insert({m_position.x, std::make_shared<ColorChange>(ColorChannelValue {m_properties->toColor, m_properties->toColorBlending}, std::max(0.0f, m_properties->duration))});
     }
@@ -189,7 +189,7 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 m_scale = Point {1, 1} * std::stof(value);
                 break;
             case 35:
-                m_properties->opacity = std::stof(value);
+                m_properties->toColor.a = std::stof(value);
                 break;
             case 41:
                 m_properties->hasDelta1 = true;
@@ -265,6 +265,9 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             case 58:
                 m_properties->lockPlayerX = std::stoi(value);
                 break;
+            case 60:
+                m_properties->copyOpacity = std::stoi(value);
+                break;
             case 62:
                 m_properties->spawnTriggered = std::stoi(value);
                 break;
@@ -313,7 +316,7 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 break;
             case 1007:
                 if (m_properties->targetGroup < 0) break;
-                layer->m_rawAlphaChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<AlphaChange>(AlphaValue {m_properties->opacity}, std::max(0.0f, m_properties->duration))});
+                layer->m_rawAlphaChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<AlphaChange>(AlphaValue {m_properties->toColor.a}, std::max(0.0f, m_properties->duration))});
                 break;
             case 1616:
                 layer->m_stopTriggerLocations[m_properties->targetGroup].push_back(m_position.x);
@@ -371,26 +374,23 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
 
     if (layer) {
         std::string colorType = gameObjectJson.contains("color_type") ? gameObjectJson["color_type"] : "Base";
-        sprite->m_colorChannelPtr = layer->m_colorChannels[0];
+        sprite->m_colorChannel = layer->m_colorChannels[0];
         if (colorType == "Base") {
-            sprite->m_colorChannel = m_colorChannel1;
-            sprite->m_colorChannelPtr = layer->m_colorChannels[m_colorChannel1];
+            sprite->m_colorChannel = layer->m_colorChannels[m_colorChannel1];
 
             if (m_properties->hasDelta1) {
                 sprite->m_hasColorDelta = true;
                 sprite->m_colorDelta = m_properties->delta1;
             }
         } else if (colorType == "Detail") {
-            sprite->m_colorChannel = m_colorChannel2;
-            sprite->m_colorChannelPtr = layer->m_colorChannels[std::abs(m_colorChannel2)];
+            sprite->m_colorChannel = layer->m_colorChannels[std::abs(m_colorChannel2)];
             
             if (m_properties->hasDelta2) {
                 sprite->m_hasColorDelta = true;
                 sprite->m_colorDelta = m_properties->delta2;
             }
         } else if (colorType == "Black") {
-            sprite->m_colorChannel = 1010;
-            sprite->m_colorChannelPtr = layer->m_colorChannels[1010];
+            sprite->m_colorChannel = layer->m_colorChannels[1010];
         }
     }
 
@@ -422,28 +422,25 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
         deltaAnchor = {-deltaAnchor.y, deltaAnchor.x};
     }
 
-    sprite->m_colorChannelPtr = m_layer->m_colorChannels[0];
+    sprite->m_colorChannel = m_layer->m_colorChannels[0];
     if (m_layer) {
         std::string colorType = child.contains("color_type") ? child["color_type"] : "Base";
         if (colorType == "Base") {
-            sprite->m_colorChannel = m_colorChannel1;
-            sprite->m_colorChannelPtr = m_layer->m_colorChannels[m_colorChannel1];
+            sprite->m_colorChannel = m_layer->m_colorChannels[m_colorChannel1];
 
             if (m_properties->hasDelta1) {
                 sprite->m_hasColorDelta = true;
                 sprite->m_colorDelta = m_properties->delta1;
             }
         } else if (colorType == "Detail") {
-            sprite->m_colorChannel = m_colorChannel2;
-            sprite->m_colorChannelPtr = m_layer->m_colorChannels[std::abs(m_colorChannel2)];
+            sprite->m_colorChannel = m_layer->m_colorChannels[std::abs(m_colorChannel2)];
             
             if (m_properties->hasDelta2) {
                 sprite->m_hasColorDelta = true;
                 sprite->m_colorDelta = m_properties->delta2;
             }
         } else if (colorType == "Black") {
-            sprite->m_colorChannel = 1010;
-            sprite->m_colorChannelPtr = m_layer->m_colorChannels[1010];
+            sprite->m_colorChannel = m_layer->m_colorChannels[1010];
         }
     }
     

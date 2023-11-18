@@ -12,7 +12,8 @@ public:
 
     RGBAColor m_textureColor;
     RGBAColor m_currColor;
-    bool m_blending;
+    bool m_baseBlending = false;
+    bool m_blending = false;
     bool m_textureBlending;
 
     RGBAColor m_baseColor;

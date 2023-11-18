@@ -44,12 +44,12 @@ LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level
     parseLevelString();
     if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.1f;
 
-    parseLevelProperties();
-    if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.2f;
-
     m_levelBatcher = std::make_shared<Batcher>();
     m_levelBatcher->m_zOrder = 0.0f;
     addChild(m_levelBatcher); 
+
+    parseLevelProperties();
+    if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.2f;
 
     setupObjects();
 
@@ -269,6 +269,8 @@ void LevelLayer::parseColor(std::string colorString) {
     m_colorChannels[index]->m_currColor = baseColor;
     
     m_colorChannels[index]->m_blending = blending;
+    m_colorChannels[index]->m_baseBlending = blending;
+
     m_colorChannels[index]->m_inheritedDelta = inheritedDelta;
     if (copyColor != 0) {
         m_colorChannels[index]->m_colorCopied = true;
@@ -294,9 +296,9 @@ void LevelLayer::parseLevelProperties() {
     std::shared_ptr<Texture> colorTexture;
 
     if (m_loadingLayer) {
-        colorTexture = Texture::queueDataTexture(2, 1013, GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA, GL_UNSIGNED_BYTE, "colorTexture", m_loadingLayer);
+        colorTexture = Texture::queueDataTexture(2, 1013, GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA32F, GL_FLOAT, "colorTexture", m_loadingLayer);
     } else {
-        colorTexture = std::make_shared<Texture>(2, 1013, GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA, GL_UNSIGNED_BYTE);
+        colorTexture = std::make_shared<Texture>(2, 1013, GL_TEXTURE_2D, Texture::m_nextSlot++, GL_RGBA32F, GL_FLOAT);
         colorTexture->setUniforms("colorTexture");
     }
 
@@ -482,9 +484,9 @@ void LevelLayer::update(float delta) {
 
         float time = std::max(currTime, 0.0f);
         for (auto& colorChannel : m_colorChannels) {
+            colorChannel->updateColor(time);
             colorChannel->updateTextureColor();
             colorChannel->updateTextureBlending();
-            colorChannel->updateColor(time);
         }
 
         for (auto& group : m_groups) {

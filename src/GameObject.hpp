@@ -29,8 +29,8 @@ struct GameObjectProperties {
     int targetChannel = 1;
     int targetGroup = 1;
     RGBAColor toColor = {1, 1, 1, 1};
-    float opacity = 1.0f;
     bool toColorBlending = false;
+    bool copyOpacity = false;
     std::vector<std::shared_ptr<Group>> m_groups;
 
     easingFunction function = [](float t, float r) { return t; };

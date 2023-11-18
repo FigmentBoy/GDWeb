@@ -14,7 +14,7 @@ GroundSprite::GroundSprite(int index, LevelLayer* layer) {
 
         m_sprites.push_back(sprite);
 
-        sprite->m_colorChannel = 1001;
+        sprite->m_colorChannel = layer->m_colorChannels[1001];
     } else {
         std::string baseName = (std::string) "groundSquare_" + (index < 10 ? "0" : "") + std::to_string(index) + "_001.png";
         std::shared_ptr<SpriteFrame> baseFrame = SpriteFrameCache::get()->getSpriteFrameByName(baseName);
@@ -33,8 +33,8 @@ GroundSprite::GroundSprite(int index, LevelLayer* layer) {
         m_sprites.push_back(baseSprite);
         m_sprites.push_back(topSprite);
 
-        baseSprite->m_colorChannel = 1001;
-        topSprite->m_colorChannel = 1001;
+        baseSprite->m_colorChannel = layer->m_colorChannels[1001];
+        topSprite->m_colorChannel = layer->m_colorChannels[1001];
     }
 
     std::shared_ptr<SpriteFrame> shineFrame = SpriteFrameCache::get()->getSpriteFrameByName("floorLine_01_001.png");

@@ -8,7 +8,7 @@
 class ColorChannel;
 
 struct ColorChannelValue : public RGBAColor {
-    bool m_blending;
+    bool m_blending = false;
 };
 
 $CreateTypeChanger(ColorChannelValue, Color) {
@@ -16,13 +16,14 @@ public:
     using ColorChangeBase::ColorChangeBase;
 
     bool m_copyColor = false;
+    bool m_copyOpacity = false;
     std::shared_ptr<ColorChannel> m_channelToCopy;
     HSVAColor m_inheritedDelta;
 
     RGBAColor m_lastBase = {-1, -1, -1};
     float m_position;
 
-    static std::unique_ptr<ColorChange> copyColorChange(std::shared_ptr<ColorChannel> channelToCopy, HSVAColor inheritedDelta, float duration, float blending);
+    static std::unique_ptr<ColorChange> copyColorChange(std::shared_ptr<ColorChannel> channelToCopy, HSVAColor inheritedDelta, float duration, bool blending, bool copyOpacity, float opacity);
     ColorChannelValue valueFor(float x);
 };
 

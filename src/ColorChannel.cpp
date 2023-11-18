@@ -4,30 +4,25 @@
 void ColorChannel::updateTextureColor() {
     m_textureColor = m_currColor;
 
-    GLubyte data[4] = {
-        static_cast<GLubyte>(m_currColor.r * 255), 
-        static_cast<GLubyte>(m_currColor.g * 255), 
-        static_cast<GLubyte>(m_currColor.b * 255), 
-        static_cast<GLubyte>(m_currColor.a * 255),
-    };
     m_colorTexture->setSubData(
-        data, 
-        {1, 1}, {0, m_index}, GL_UNSIGNED_BYTE
+        &m_currColor.r, 
+        {1, 1}, {0, m_index}, GL_FLOAT
     );
 }
 
 void ColorChannel::updateTextureBlending() {
     m_textureBlending = m_blending;
 
-    GLubyte data[4] = {
-        static_cast<GLubyte>(m_blending ? 255 : 0),
-        0,
-        0,
-        0
+    GLfloat data[4] = {
+        m_blending ? 1.0f : 0.0f,
+        0.0f,
+        0.0f,
+        0.0f
     };
+
     m_colorTexture->setSubData(
         data, 
-        {1, 1}, {1, m_index}, GL_UNSIGNED_BYTE
+        {1, 1}, {1, m_index}, GL_FLOAT
     );
 }
 
@@ -42,7 +37,7 @@ ColorChannelValue ColorChannel::valueFor(float time) {
 }
 
 ColorChannelValue ColorChannel::valueForWithoutPulses(float time) {
-    ColorChannelValue res = {m_colorCopied && m_parentChannel ? m_parentChannel->valueFor(time).shift(m_inheritedDelta) : m_baseColor, m_blending};
+    ColorChannelValue res = {m_colorCopied && m_parentChannel ? m_parentChannel->valueFor(time).shift(m_inheritedDelta) : m_baseColor, m_baseBlending};
 
     if (m_colorTriggers && m_colorTriggers->m_changes.lower_bound(time) != m_colorTriggers->m_changes.begin()) {
         res = m_colorTriggers->valueFor(time);
@@ -74,16 +69,13 @@ void ColorChannel::updateColor(float time) {
         return;
     }
 
-    m_currColor = m_colorCopied && m_parentChannel ? m_parentChannel->valueFor(time).shift(m_inheritedDelta) : m_baseColor;
-    
-    auto ret = valueFor(time);
+    auto res = valueFor(time);
 
-    m_blending = ret.m_blending;
-    m_currColor = ret;
+    m_currColor = res;
+    m_blending = res.m_blending;
 
-    if (m_blending != m_textureBlending) { // Re-sort
+    if (m_blending != m_textureBlending) {
         updateTextureBlending();
-        m_batcher->m_dirty = true;
     }
 
     if (m_currColor != m_textureColor) {

@@ -6,6 +6,7 @@ in float color;
 in float groupGroup;
 in float texIndex;
 in vec4 hsv;
+in float blending;
 
 out vec4 fragColor;
 
@@ -58,6 +59,15 @@ vec4 shiftHSV(vec4 color, float h, float s, float v, bool addS, bool addV) {
 }
 
 void main() {
+    float blendingVal = texelFetch(colorTexture, ivec2(1, color), 0).r;
+    bool additiveBlending = blendingVal > 0.5;
+
+    if (blending < 1.5) {
+        if (blending > 0.5 != additiveBlending) {
+            discard;
+        }
+    }
+
     vec4 channelColor = texelFetch(colorTexture, ivec2(0, abs(color)), 0);
 
     if (color < 0.0) {
@@ -72,8 +82,6 @@ void main() {
 
         channelColor = shiftHSV(channelColor, hsv.x, hsv.y, hsv.z, sChecked, vChecked);
     }
-
-    bool additiveBlending = texelFetch(colorTexture, ivec2(1, color), 0).r > 0.5;
 
     fragColor = channelColor;
     switch(int(texIndex)) { // I don't want to make a Sampler2DArray :)
