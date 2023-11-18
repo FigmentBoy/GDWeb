@@ -5,7 +5,6 @@
 #include "utils.hpp"
 
 #include "GameObject.hpp"
-#include "GUI.hpp"
 
 #include "GroundSprite.hpp"
 #include "BackgroundSprite.hpp"
@@ -16,7 +15,23 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+LevelLayer* LevelLayer::m_instance = nullptr;
+
+void play() {
+    if (!LevelLayer::m_instance) return;
+    LevelLayer::m_instance->m_autoScroll = true;
+    LevelLayer::m_instance->toggleAutoScroll();
+}
+
+void pause() {
+    if (!LevelLayer::m_instance) return;
+    LevelLayer::m_instance->m_autoScroll = false;
+    LevelLayer::m_instance->toggleAutoScroll();
+}
+
 LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level), m_loadingLayer(loadingLayer) {
+    m_instance = this;
+
     Director::get()->m_camera->m_position = {-512, -128};
     m_prevMousePos = Director::get()->m_mousePosition;
 
@@ -411,17 +426,23 @@ void LevelLayer::toggleAutoScroll() {
                 Module.audioTimeout = setTimeout(function() {
                     Module.audio.play();
                 }, -$0 * 1000);
+
+                Module.startedPlaying();
             }, startTime);
         } else {
             EM_ASM({
                 Module.audio.currentTime = $0;
                 Module.audio.play();
+
+                Module.startedPlaying();
             }, startTime);
         }
     } else {
         EM_ASM({
             clearTimeout(Module.audioTimeout);
             Module.audio.pause();
+
+            Module.stoppedPlaying();
         });
     }
 }
@@ -503,25 +524,19 @@ void LevelLayer::update(float delta) {
 void LevelLayer::draw() {
     Node::draw();
 
-    auto camera = Director::get()->m_camera;
-    ImGui::SetNextWindowSize({300, 200});
-    ImGui::Begin("Options");
+    // if (ImGui::ColorEdit4("P1 Color", &ColorChannel::m_p1Color.r)) {
+    //     float time = timeForX(camera->getPlayerX());
+    //     m_colorChannels[1005]->m_baseColor = ColorChannel::m_p1Color;
+    //     m_colorChannels[1005]->updateColor(time);
+    //     m_colorChannels[1007]->updateColor(time);
+    // };
 
-    if (ImGui::ColorEdit4("P1 Color", &ColorChannel::m_p1Color.r)) {
-        float time = timeForX(camera->getPlayerX());
-        m_colorChannels[1005]->m_baseColor = ColorChannel::m_p1Color;
-        m_colorChannels[1005]->updateColor(time);
-        m_colorChannels[1007]->updateColor(time);
-    };
+    // if (ImGui::ColorEdit4("P2 Color", &ColorChannel::m_p2Color.r)) {
+    //     m_colorChannels[1006]->m_baseColor = ColorChannel::m_p1Color;
+    //     m_colorChannels[1006]->updateColor(timeForX(camera->getPlayerX()));
+    // };
 
-    if (ImGui::ColorEdit4("P2 Color", &ColorChannel::m_p2Color.r)) {
-        m_colorChannels[1006]->m_baseColor = ColorChannel::m_p1Color;
-        m_colorChannels[1006]->updateColor(timeForX(camera->getPlayerX()));
-    };
-
-    if (ImGui::Checkbox("Auto Scroll", &m_autoScroll)) {
-        toggleAutoScroll();
-    }
-
-    ImGui::End();
+    // if (ImGui::Checkbox("Auto Scroll", &m_autoScroll)) {
+    //     toggleAutoScroll();
+    // }
 }

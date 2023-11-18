@@ -17,10 +17,17 @@
 #include <string>
 #include <map>
 
+extern "C" {
+    void play();
+    void pause();
+}
+
 class LoadingLayer;
 
 class LevelLayer : public Node {
 public:
+    static LevelLayer* m_instance;
+
     float m_songOffset;
 
     std::unique_ptr<Level> m_level;

@@ -39,16 +39,31 @@ jobs:
       - name: Configure CMake
         run: emcmake cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build Emscripten
         run: cmake --build build
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
       
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
       - name: Setup Pages
         uses: actions/configure-pages@v2
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
-          path: './bin'
+          path: './frontend/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment

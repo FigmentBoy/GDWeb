@@ -2,31 +2,9 @@
 
 #include "Color.hpp"
 #include "Sprite.hpp"
-#include "GameEffect.hpp"
+#include "ChannelTriggers.hpp"
 #include "Batcher.hpp"
 #include <map>
-
-struct ColorTrigger {
-    float duration;
-    RGBAColor toColor;
-};
-
-struct AlphaTrigger {
-    float duration;
-    float toAlpha;
-};
-
-// TODO:
-// struct PulseTrigger {
-//     float time;
-//     float period;
-// };
-
-class ColorChannelValue;
-using ColorChange = TypeChanger<ColorChannelValue>;
-
-class PulseValue;
-using PulseChange = CompoundTypeChanger<PulseValue>;
 
 class ColorChannel {
 public:
@@ -35,6 +13,7 @@ public:
     RGBAColor m_textureColor;
     RGBAColor m_currColor;
     bool m_blending;
+    bool m_textureBlending;
 
     RGBAColor m_baseColor;
 

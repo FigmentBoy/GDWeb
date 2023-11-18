@@ -9,7 +9,11 @@ public:
     int m_audioTrack;
 
     static Level* fromGMD(std::string path);
-    static Level* fromServers(int id);
+
+    Level() {};
+    Level(std::string levelName, std::string levelString, int audioTrack) : m_levelName(levelName), m_levelString(levelString), m_audioTrack(audioTrack) {
+        decodeLevelString();
+    };
 
     void decodeLevelString();
 };

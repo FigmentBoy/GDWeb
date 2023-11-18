@@ -33,10 +33,6 @@ Level* Level::fromGMD(std::string path) {
     return level;
 }
 
-Level* Level::fromServers(int id) {
-    return nullptr;
-}
-
 void Level::decodeLevelString() {
     std::replace(m_levelString.begin(), m_levelString.end(), '_', '/');
 	std::replace(m_levelString.begin(), m_levelString.end(), '-', '+');

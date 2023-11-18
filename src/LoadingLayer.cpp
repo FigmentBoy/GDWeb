@@ -8,8 +8,7 @@
 #include "TestLayer.hpp"
 #include "utils.hpp"
 
-#include "imgui.h"
-#include "GUI.hpp"
+#include <emscripten.h>
 
 struct LoadSpriteArgs {
     SpriteFrameCache* cache;
@@ -42,7 +41,7 @@ void* loadSprite(void* args) {
     return NULL;
 }
 
-void* loadResources(void* layerPtr) {
+void* loadResourcesThread(void* layerPtr) {
     auto layer = (LoadingLayer*)layerPtr;
 
     printf("Loading resources...\n");
@@ -128,19 +127,17 @@ void* loadResources(void* layerPtr) {
         THREAD_JOIN(thread);
     }
     
-    layer->m_stage = LoadingStage::LEVEL;
-    layer->m_percentDone = 0.0f;
+    layer->m_stage = LoadingStage::NONE;
 
-    Level* level = Level::fromGMD("static/Kenos.gmd");
-
-    layer->m_levelLayer = new LevelLayer(level, layer);
-    layer->m_done = true;
+    MAIN_THREAD_EM_ASM({
+        Module.initialized();
+    });
 
     return NULL;
 }
 
-LoadingLayer::LoadingLayer() {
-    THREAD_CREATE(m_thread, loadResources, (void*)this);
+LoadingLayer::LoadingLayer(bool loadResources) {
+    if (loadResources) THREAD_CREATE(m_thread, loadResourcesThread, (void*)this);
 }
 
 void LoadingLayer::update(float delta) {
@@ -165,30 +162,7 @@ void LoadingLayer::update(float delta) {
 }
 
 void LoadingLayer::draw() {
-    if (m_done) {
-        Director::get()->swapRootNode(m_levelLayer);
-        return;
-    }
-
-    ImGuiWindowFlags window_flags = 0;
-    window_flags |= ImGuiWindowFlags_NoBackground;
-    window_flags |= ImGuiWindowFlags_NoTitleBar;
-    window_flags |= ImGuiWindowFlags_NoResize;
-    window_flags |= ImGuiWindowFlags_NoMove;
-
-    ImGui::SetNextWindowPos({0, 0});
-    ImGui::SetNextWindowSize({ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y});
-    
-    ImGui::Begin("#LOADING", nullptr, window_flags);
-    ImGui::PushFont(GUI::get()->micross->giant);
-
-    std::string loadType = "Sprites";
-    if (m_stage == LoadingStage::LEVEL) loadType = "Level";
-
-    ImVec2 size = ImGui::CalcTextSize(string_format("Loading %s: %.2f%%", loadType.c_str(), m_percentDone * 100.0f).c_str());
-    ImGui::SetCursorPos({ImGui::GetIO().DisplaySize.x / 2 - size.x / 2, ImGui::GetIO().DisplaySize.y / 2 - size.y / 2});
-    ImGui::Text("Loading %s: %.2f%%", loadType.c_str(), m_percentDone * 100.0f);
-    
-    ImGui::PopFont();
-    ImGui::End();
+    EM_ASM({
+        Module.updateLoading($0, $1);
+    }, m_percentDone, (int)m_stage);
 };

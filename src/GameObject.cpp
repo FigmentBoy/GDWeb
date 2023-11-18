@@ -371,9 +371,10 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
 
     if (layer) {
         std::string colorType = gameObjectJson.contains("color_type") ? gameObjectJson["color_type"] : "Base";
+        sprite->m_colorChannelPtr = layer->m_colorChannels[0];
         if (colorType == "Base") {
             sprite->m_colorChannel = m_colorChannel1;
-            sprite->m_blendingVal = &layer->m_colorChannels[m_colorChannel1]->m_blending;
+            sprite->m_colorChannelPtr = layer->m_colorChannels[m_colorChannel1];
 
             if (m_properties->hasDelta1) {
                 sprite->m_hasColorDelta = true;
@@ -381,7 +382,7 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             }
         } else if (colorType == "Detail") {
             sprite->m_colorChannel = m_colorChannel2;
-            sprite->m_blendingVal = &layer->m_colorChannels[m_colorChannel2]->m_blending;
+            sprite->m_colorChannelPtr = layer->m_colorChannels[std::abs(m_colorChannel2)];
             
             if (m_properties->hasDelta2) {
                 sprite->m_hasColorDelta = true;
@@ -389,7 +390,7 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             }
         } else if (colorType == "Black") {
             sprite->m_colorChannel = 1010;
-            sprite->m_blendingVal = &layer->m_colorChannels[1010]->m_blending;
+            sprite->m_colorChannelPtr = layer->m_colorChannels[1010];
         }
     }
 
@@ -421,11 +422,12 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
         deltaAnchor = {-deltaAnchor.y, deltaAnchor.x};
     }
 
+    sprite->m_colorChannelPtr = m_layer->m_colorChannels[0];
     if (m_layer) {
         std::string colorType = child.contains("color_type") ? child["color_type"] : "Base";
         if (colorType == "Base") {
             sprite->m_colorChannel = m_colorChannel1;
-            sprite->m_blendingVal = &m_layer->m_colorChannels[m_colorChannel1]->m_blending;
+            sprite->m_colorChannelPtr = m_layer->m_colorChannels[m_colorChannel1];
 
             if (m_properties->hasDelta1) {
                 sprite->m_hasColorDelta = true;
@@ -433,15 +435,15 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
             }
         } else if (colorType == "Detail") {
             sprite->m_colorChannel = m_colorChannel2;
-            sprite->m_blendingVal = &m_layer->m_colorChannels[m_colorChannel2]->m_blending;
-
+            sprite->m_colorChannelPtr = m_layer->m_colorChannels[std::abs(m_colorChannel2)];
+            
             if (m_properties->hasDelta2) {
                 sprite->m_hasColorDelta = true;
                 sprite->m_colorDelta = m_properties->delta2;
             }
         } else if (colorType == "Black") {
             sprite->m_colorChannel = 1010;
-            sprite->m_blendingVal = &m_layer->m_colorChannels[1010]->m_blending;
+            sprite->m_colorChannelPtr = m_layer->m_colorChannels[1010];
         }
     }
     

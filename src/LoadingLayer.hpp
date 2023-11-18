@@ -20,11 +20,10 @@
 #include <GL/glew.h>
 
 enum class LoadingStage {
-    SPRITES,
-    LEVEL
+    NONE = -1,
+    SPRITES = 0,
+    LEVEL = 1,
 };
-
-class LevelLayer;
 
 class LoadingLayer : public Node {
 public:
@@ -32,15 +31,12 @@ public:
 
     LoadingStage m_stage = LoadingStage::SPRITES;
     float m_percentDone = 0.0f;
-
-    bool m_done = false;
-    LevelLayer* m_levelLayer;
     
     std::mutex m_mutex;
     std::vector<std::shared_ptr<UncommittedTexture>> m_uncommittedTextures;
     std::vector<std::shared_ptr<UncommittedDataTexture>> m_uncommittedDataTextures;
 
-    LoadingLayer();
+    LoadingLayer(bool loadResources);
 
     void update(float delta);
     void draw();

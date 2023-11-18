@@ -17,6 +17,8 @@ void ColorChannel::updateTextureColor() {
 }
 
 void ColorChannel::updateTextureBlending() {
+    m_textureBlending = m_blending;
+
     GLubyte data[4] = {
         static_cast<GLubyte>(m_blending ? 255 : 0),
         0,
@@ -74,13 +76,12 @@ void ColorChannel::updateColor(float time) {
 
     m_currColor = m_colorCopied && m_parentChannel ? m_parentChannel->valueFor(time).shift(m_inheritedDelta) : m_baseColor;
     
-    auto oldBlending = m_blending;
     auto ret = valueFor(time);
 
     m_blending = ret.m_blending;
     m_currColor = ret;
 
-    if (oldBlending != m_blending) { // Re-sort
+    if (m_blending != m_textureBlending) { // Re-sort
         updateTextureBlending();
         m_batcher->m_dirty = true;
     }

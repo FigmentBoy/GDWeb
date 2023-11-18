@@ -4,11 +4,6 @@
 #include "TestLayer.hpp"
 #include "LoadingLayer.hpp"
 #include "Plist.hpp"
-
-#include "imgui.h"
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"
-#include "GUI.hpp"
 #include "utils.hpp"
 
 #include <GL/glew.h>
@@ -64,14 +59,12 @@ bool Director::init() {
     glfwMakeContextCurrent(m_window);
 
     glfwSetMouseButtonCallback(m_window, +[](GLFWwindow* window, int button, int action, int mods) {
-        if (ImGui::GetIO().WantCaptureMouse) return;
         for (auto& listener : Director::get()->m_mouseClickListeners) {
             listener->onMouseClick(button, action, mods);
         }
     });
 
     glfwSetScrollCallback(m_window, +[](GLFWwindow* window, double xoffset, double yoffset){
-        if (ImGui::GetIO().WantCaptureMouse) return;
         for (auto& listener : Director::get()->m_mouseScrollListeners) {
             listener->onMouseScroll(xoffset, yoffset);
         }
@@ -83,15 +76,6 @@ bool Director::init() {
         return false;
     }
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
-
-    ImGui_ImplOpenGL3_Init();
-    auto gui = GUI::get(); (void) gui;
-
     m_defaultShader = std::make_shared<Shader>("static/shaders/default.vert", "static/shaders/default.frag");
     
     m_shader = m_defaultShader;
@@ -99,7 +83,7 @@ bool Director::init() {
     m_camera = std::make_shared<Camera>();
     m_camera->m_viewSize = {m_windowSize.width, m_windowSize.height};
 
-    m_rootNode = std::make_unique<LoadingLayer>();
+    m_rootNode = std::make_unique<LoadingLayer>(true);
 
     return true;
 }
@@ -110,10 +94,6 @@ void Director::mainLoop() {
 
     glfwMakeContextCurrent(m_window);
     glClear(GL_COLOR_BUFFER_BIT);
-        
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // We can control blending in the shader
     glEnable(GL_BLEND);
@@ -152,9 +132,6 @@ void Director::mainLoop() {
     m_rootNode->draw();
 
     m_shader->deactivate();
-
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(m_window);
     emscripten_webgl_commit_frame();

@@ -23,12 +23,9 @@ ColorChannelValue ColorChange::valueFor(float x) {
             m_lastBase = baseColor;
             m_toValue = {baseColor.shift(m_inheritedDelta), m_toValue.m_blending};
         }
-
-        return {m_channelToCopy->m_currColor.shift(m_inheritedDelta), m_toValue.m_blending};
     }
 
-    // if (m_duration == 0.0f || x > m_duration) return m_toValue;
-    return {RGBAColor::lerp(m_fromValue, m_toValue, 1.f), m_toValue.m_blending};
+    return {RGBAColor::lerp(m_fromValue, m_toValue, std::min(x / m_duration, 1.0f)), m_toValue.m_blending};
 };
 
 PulseValue PulseChange::finalValue(PulseValue startValue) {

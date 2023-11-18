@@ -12,12 +12,14 @@
 #include "VBO.hpp"
 #include "EBO.hpp"
 
+class ColorChannel;
+
 class Sprite : public Node {
 public:
     GLfloat m_colorChannel;
     GLfloat m_groupGroupIndex = 0;
 
-    bool* m_blendingVal = nullptr;
+    std::shared_ptr<ColorChannel> m_colorChannelPtr;
     bool m_hasColorDelta = false;
     HSVAColor m_colorDelta = {0, 1, 1};
 

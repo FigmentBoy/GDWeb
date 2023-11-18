@@ -1,6 +1,7 @@
 #include "Batcher.hpp"
 #include "Director.hpp"
 #include "Sprite.hpp"
+#include "ColorChannel.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -61,7 +62,7 @@ void Batcher::setData() {
 
     std::sort(m_sprites.begin(), m_sprites.end(), [](std::shared_ptr<Sprite> a, std::shared_ptr<Sprite> b) {
         if (a->m_batchZLayer != b->m_batchZLayer) return a->m_batchZLayer < b->m_batchZLayer;
-        if (*a->m_blendingVal != *b->m_blendingVal) return *a->m_blendingVal;
+        if (a->m_colorChannelPtr->m_blending != b->m_colorChannelPtr->m_blending) return a->m_colorChannelPtr->m_blending;
         return a->m_zOrder < b->m_zOrder;
     });
 
