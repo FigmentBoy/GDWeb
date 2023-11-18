@@ -4,10 +4,26 @@
     let canv: HTMLCanvasElement;
 
     onMount(() => {
-        (<any>window).Module = {
-            ...(<any>window).Module,
+        let win = (<any>window);
+        
+        win.Module = {
+            ...win.Module,
             canvas: canv
         };
+
+        let interval = setInterval(() => {
+            if (win.Module.calledRun) {
+                clearInterval(interval);
+
+                window.removeEventListener('keydown', win.GLFW.onKeydown, true)
+
+                win.GLFW.onKeydown = (event: KeyboardEvent) => {
+                    win.GLFW.onKeyChanged(event.keyCode, 1);
+                }
+
+                window.addEventListener('keydown', win.GLFW.onKeydown, true)
+            }
+        }, 100);
     });
 </script>
 
