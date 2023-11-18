@@ -30,7 +30,11 @@ export class LevelObject {
                     this.name = value;
                     break;
                 case "3":
-                    this.description = atob(value);
+                    try {
+                        this.description = atob(value);
+                    } catch {
+                        this.description = value;
+                    }
                     break;
                 case "4":
                     this.levelString = value;
