@@ -34,7 +34,7 @@ if (EMSCRIPTEN)
         -sWASM=1 -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=5 
         -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sUSE_WEBGL2=1 
         -sUSE_GLFW=3 -sTEXTDECODER=0 
-        -sEXPORTED_FUNCTIONS=_main,_loadLevel,_play,_pause -sEXPORTED_RUNTIME_METHODS=ccall 
+        -sEXPORTED_FUNCTIONS=_main,_loadLevel,_play,_pause 
         --preload-file ../static "
     )
 else()
