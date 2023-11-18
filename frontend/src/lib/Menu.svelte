@@ -20,7 +20,10 @@
 
     let onSearch = async (query: string) => {
         const response = await fetch(`/search/${encodeURIComponent(query)}`).then(async response => await response.text());
-        levels = response.split("#")[0].split("|").map(level => new LevelObject(level));
+        
+        let temp = response.split("#")
+        temp.pop();
+        levels = temp.join("#").split("|").map(level => new LevelObject(level));
     }
 
     let levels: LevelObject[] = [];
