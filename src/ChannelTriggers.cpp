@@ -51,20 +51,11 @@ PulseValue PulseChange::getContribution(PulseValue in, float x) {
     percent = std::clamp(percent, 0.0f, 1.0f);
 
     if (m_pulseType == PulseType::HSV) {
-        if (m_channelToCopy == nullptr) {
-            auto baseColor = m_targetChannel->valueForWithoutPulses(m_position + x);
+        auto baseColor = m_channelToCopy->valueForWithoutPulses(m_position + x);
 
-            if (m_prevCopyColor != baseColor) {
-                m_toRGB = baseColor.shift(m_toHSV);
-                m_prevCopyColor = baseColor;
-            }
-        } else {
-            auto baseColor = m_channelToCopy->valueFor(m_position + x);
-
-            if (m_prevCopyColor != baseColor) {
-                m_toRGB = baseColor.shift(m_toHSV);
-                m_prevCopyColor = baseColor;
-            }
+        if (m_prevCopyColor != baseColor) {
+            m_toRGB = baseColor.shift(m_toHSV);
+            m_prevCopyColor = baseColor;
         }
     }
 

@@ -310,10 +310,12 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                 if (m_properties->targetGroup <= 0) break;
                 layer->m_rawPositionChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PositionChange>(PositionValue {m_properties->movePosition}, std::max(0.0f, m_properties->duration), m_properties->function, m_properties->rate, m_position.x, m_properties->lockPlayerX, layer));
                 break;
-            case 1006:
+            case 1006: {
                 if (m_properties->channelType == PulseChannel::Group) break; // Groups hurt my brain
-                layer->m_rawPulseChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, layer->m_colorChannels[m_properties->targetGroup], m_properties->copyChannelID > 0 ? layer->m_colorChannels[m_properties->copyChannelID] : nullptr, m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut));
+                auto targetChannel = layer->m_colorChannels[m_properties->targetGroup];
+                layer->m_rawPulseChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, targetChannel, m_properties->copyChannelID > 0 ? layer->m_colorChannels[m_properties->copyChannelID] : targetChannel, m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut));
                 break;
+            }
             case 1007:
                 if (m_properties->targetGroup < 0) break;
                 layer->m_rawAlphaChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<AlphaChange>(AlphaValue {m_properties->toColor.a}, std::max(0.0f, m_properties->duration))});
