@@ -66,6 +66,30 @@ void main() {
         if (blending > 0.5 != additiveBlending) {
             discard;
         }
+    } else {
+        additiveBlending = false;
+    }
+
+    fragColor = vec4(0.0);
+    switch(int(texIndex)) { // I don't want to make a Sampler2DArray :)
+        case 0:
+            fragColor = texture(textures[0], texCoord);
+            break;
+        case 1:
+            fragColor = texture(textures[1], texCoord);
+            break;
+        case 2:
+            fragColor = texture(textures[2], texCoord);
+            break;
+        case 3:
+            fragColor = texture(textures[3], texCoord);
+            break;
+        case 4:
+            fragColor = texture(textures[4], texCoord);
+            break;
+        case 5:
+            fragColor = texture(textures[5], texCoord);
+            break;
     }
 
     vec4 channelColor = texelFetch(colorTexture, ivec2(0, abs(color)), 0);
@@ -83,32 +107,19 @@ void main() {
         channelColor = shiftHSV(channelColor, hsv.x, hsv.y, hsv.z, sChecked, vChecked);
     }
 
-    fragColor = channelColor;
-    switch(int(texIndex)) { // I don't want to make a Sampler2DArray :)
-        case 0:
-            fragColor = texture(textures[0], texCoord) * channelColor;
-            break;
-        case 1:
-            fragColor = texture(textures[1], texCoord) * channelColor;
-            break;
-        case 2:
-            fragColor = texture(textures[2], texCoord) * channelColor;
-            break;
-        case 3:
-            fragColor = texture(textures[3], texCoord) * channelColor;
-            break;
-        case 4:
-            fragColor = texture(textures[4], texCoord) * channelColor;
-            break;
-        case 5:
-            fragColor = texture(textures[5], texCoord) * channelColor;
-            break;
-    }
-
     if (additiveBlending) {
-        fragColor.rgb *= clamp(0.175656971639325 * pow(7.06033051530761, fragColor.a) - 0.213355914301931, 0.0, 1.0); // Big thanks to Opstic
+        // Seen in GameObject::getActiveColorForMode
+        vec3 shiftedColor = shiftHSV(channelColor, 0.0, 0.65, 0.15, false, false).rgb;
+
+        // This exact formula (specifically the scale factor) may be slightly off, but it looks correct to me
+        float alpha = channelColor.a * fragColor.a;
+        channelColor.rgb = mix(shiftedColor, channelColor.rgb, pow(alpha, 2.0));
+        
+        fragColor *= channelColor;
+        fragColor.rgb *= alpha;
         fragColor.a = 0.0;
     } else {
+        fragColor *= channelColor;
         fragColor.rgb *= fragColor.a;
     }
 }

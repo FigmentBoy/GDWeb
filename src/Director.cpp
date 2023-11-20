@@ -95,7 +95,7 @@ void Director::mainLoop() {
     glfwMakeContextCurrent(m_window);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // We can control blending in the shader
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
     m_shader->activate();

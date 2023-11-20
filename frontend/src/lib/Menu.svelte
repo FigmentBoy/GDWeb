@@ -61,7 +61,7 @@
     </Card>
 {:else}
     <Card on:click={openMenu} class="fixed top-4 left-4 cursor-pointer h-12 w-12 flex justify-center items-center">
-        <i class="fas fa-bars" />
+        <i class="fas fa-bars fa-lg" />
     </Card>
 {/if}
 

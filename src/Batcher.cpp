@@ -158,6 +158,9 @@ void Batcher::update(float dt) {
         m_vbo = std::make_unique<VBO>();
         m_ebo = std::make_unique<EBO>();
 
+        m_vbo->bind();
+        m_ebo->bind();
+
         m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 12 * sizeof(GLfloat), (void*)0);
         m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
         m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
