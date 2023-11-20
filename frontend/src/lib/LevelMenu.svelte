@@ -6,8 +6,6 @@
 	import SearchBar from './components/SearchBar.svelte';
 	import Card from './components/Card.svelte';
 
-    import { scale } from 'svelte/transition';
-
     let menuOpen: boolean = false;
 
     let openMenu = () => {
@@ -41,7 +39,7 @@
 </script>
 
 {#if menuOpen}
-    <Card class="fixed top-4 left-4 w-[30rem] max-h-[40rem] flex flex-col justify-start {levels.length == 0 ? '' : 'pb-0'}">
+    <Card class="fixed top-4 left-4 max-w-[30rem] max-h-[40rem] w-full flex flex-col justify-start {levels.length == 0 ? '' : 'pb-0'}">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-2xl font-bold">Levels</h1>
 
@@ -51,7 +49,7 @@
         </div>
         <SearchBar placeholder={"Level Name or ID"} {onSearch} />
         {#if levels.length != 0}
-            <Divider />
+            <Divider class="mb-0" />
             <div class="levellist overflow-y-auto overflow-x-visible flex flex-col gap-2 p-4" id="levellist">
                 {#each levels as level}
                     <Level on:click={()=>{loadLevel(level)}} {level} />

@@ -4,6 +4,7 @@
 #include "Sprite.hpp"
 #include "LevelLayer.hpp"
 #include "SpriteFrameCache.hpp"
+#include "TriggerData.hpp"
 
 json GameObject::m_gameObjectsJson;
 
@@ -289,6 +290,10 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
     m_groupGroupIndex = GroupGroup::getGroupGroupIndex(m_properties->m_groups);
     m_layer = layer;
 
+    if (std::find(HIDE_TRIGGERS.begin(), HIDE_TRIGGERS.end(), m_id) != HIDE_TRIGGERS.end()) {
+        m_properties->isTrigger = true;
+    }
+
     if (!m_properties->spawnTriggered) {
         // Trigger Setup
         // We will go through and change it to be time based after all objects are loaded
@@ -398,7 +403,8 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
 
     sprite->m_groupGroupIndex = m_groupGroupIndex;
     sprite->m_batchZLayer = m_zLayer;
-    sprite->m_zOrder = m_zOrder; // Only for the first sprite :)
+    sprite->m_zOrder = m_zOrder;
+    if (m_properties->isTrigger) sprite->m_spriteType =  0.0f;
 
     json children = gameObjectJson["children"];
     for (auto& child : children) {
@@ -457,6 +463,7 @@ void GameObject::addChildSprite(std::shared_ptr<Sprite> parent, json child) {
     
     parent->addChild(sprite);
     sprite->m_groupGroupIndex = m_groupGroupIndex;
+    if (m_properties->isTrigger) sprite->m_spriteType =  0.0f;
     m_sprites.push_back(sprite);
 
     sprite->m_objectIndex = m_index;

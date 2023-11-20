@@ -103,8 +103,8 @@ void Batcher::setData() {
 
                     sprite->updateVertices(BlendingType::On);
 
-                    vboData.resize((n + 1) * 12 * 4);
-                    memcpy(vboData.data() + (n * 12 * 4), sprite->m_verticies, sizeof(GLfloat) * 12 * 4);
+                    vboData.resize((n + 1) * sizeof(sprite->m_verticies) / sizeof(GLfloat));
+                    memcpy(vboData.data() + (n * sizeof(sprite->m_verticies) / sizeof(GLfloat)), sprite->m_verticies, sizeof(GLfloat) * sizeof(sprite->m_verticies) / sizeof(GLfloat));
 
                     eboData.resize((n + 1) * 6);
                     memcpy(eboData.data() + (n * 6), indicies, sizeof(GLuint) * 6);
@@ -130,8 +130,8 @@ void Batcher::setData() {
 
                     sprite->updateVertices(BlendingType::Off);
 
-                    vboData.resize((n + 1) * 12 * 4);
-                    memcpy(vboData.data() + (n * 12 * 4), sprite->m_verticies, sizeof(GLfloat) * 12 * 4);
+                    vboData.resize((n + 1) * sizeof(sprite->m_verticies) / sizeof(GLfloat));
+                    memcpy(vboData.data() + (n * sizeof(sprite->m_verticies) / sizeof(GLfloat)), sprite->m_verticies, sizeof(GLfloat) * sizeof(sprite->m_verticies) / sizeof(GLfloat));
 
                     eboData.resize((n + 1) * 6);
                     memcpy(eboData.data() + (n * 6), indicies, sizeof(GLuint) * 6);
@@ -142,8 +142,8 @@ void Batcher::setData() {
         }
     }
 
-    m_vbo->setVertices(vboData.data(), n * sizeof(GLfloat) * 12 * 4);
-    m_ebo->setIndices(eboData.data(), n * sizeof(GLuint) * 6);
+    m_vbo->setVertices(vboData.data(), vboData.size() * sizeof(GLfloat));
+    m_ebo->setIndices(eboData.data(), eboData.size() * sizeof(GLuint));
 
     numRendered = n;
 }
@@ -161,13 +161,14 @@ void Batcher::update(float dt) {
         m_vbo->bind();
         m_ebo->bind();
 
-        m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 12 * sizeof(GLfloat), (void*)0);
-        m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
-        m_vao->linkAttrib(*m_vbo, 6, 1, GL_FLOAT, 12 * sizeof(GLfloat), (void*)(11 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 0, 2, GL_FLOAT, 13 * sizeof(GLfloat), (void*)0);
+        m_vao->linkAttrib(*m_vbo, 1, 2, GL_FLOAT, 13 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 2, 1, GL_FLOAT, 13 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 3, 1, GL_FLOAT, 13 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 4, 1, GL_FLOAT, 13 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 5, 4, GL_FLOAT, 13 * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 6, 1, GL_FLOAT, 13 * sizeof(GLfloat), (void*)(11 * sizeof(GLfloat)));
+        m_vao->linkAttrib(*m_vbo, 7, 1, GL_FLOAT, 13 * sizeof(GLfloat), (void*)(12 * sizeof(GLfloat)));
     }
 
     if (m_dirty) Node::update(dt);

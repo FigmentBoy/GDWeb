@@ -1,18 +1,20 @@
 <script lang="ts">
 	import LoadingIndicator from './lib/LoadingIndicator.svelte';
   import Renderer from "./lib/Renderer.svelte";
-  import Menu from "./lib/Menu.svelte";
+  import LevelMenu from "./lib/LevelMenu.svelte";
   import PlayPauseButton from './lib/PlayPauseButton.svelte';
   import Github from './lib/Github.svelte';
+  import SettingsMenu from './lib/SettingsMenu.svelte';
 
   let initialized: boolean = false;
 </script>
 
 {#if initialized}
-<Menu />
+<LevelMenu />
 <PlayPauseButton />
 {/if}
 
 <Github />
+<SettingsMenu />
 <LoadingIndicator bind:initialized />
 <Renderer />

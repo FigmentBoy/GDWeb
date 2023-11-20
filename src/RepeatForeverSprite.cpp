@@ -33,14 +33,14 @@ void RepeatForeverSprite::updateVertices(BlendingType blendingType) {
     float channelIndex = m_colorChannel->m_index;
     float blending = static_cast<float>(blendingType);
 
-    GLfloat verticies[48] = { 
-        bottomLeftTransformed.x,               bottomLeftTransformed.y,                    	   0,      1,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending, // Lower left corner
-        bottomLeftTransformed.x,               bottomLeftTransformed.y + m_lockedHeight,       0,      0,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending, // Upper left corner
-        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y + m_lockedHeight,       times,  0,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending, // Upper right corner
-        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y,                        times,  1,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending, // Lower right corner
+    GLfloat verticies[52] = { 
+        bottomLeftTransformed.x,               bottomLeftTransformed.y,                    	   0,      1,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending,  m_spriteType, // Lower left corner
+        bottomLeftTransformed.x,               bottomLeftTransformed.y + m_lockedHeight,       0,      0,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending,  m_spriteType, // Upper left corner
+        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y + m_lockedHeight,       times,  0,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending,  m_spriteType, // Upper right corner
+        bottomLeftTransformed.x + deltaWidth,  bottomLeftTransformed.y,                        times,  1,    channelIndex,  m_groupGroupIndex,  slot,  m_colorDelta.h / 360.f,  m_colorDelta.s,  m_colorDelta.v, checkVal,    blending,  m_spriteType, // Lower right corner
     };
 
-    for (int i = 0; i < 48; i++) m_verticies[i] = verticies[i];
+    for (int i = 0; i < 52; i++) m_verticies[i] = verticies[i];
 
     if (!m_currentBatcher) m_vbo->setVertices(m_verticies, sizeof(m_verticies));
 }

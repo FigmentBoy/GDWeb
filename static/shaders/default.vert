@@ -8,6 +8,7 @@ in float aGroupGroup;
 in float aTexIndex;
 in vec4 aHSV;
 in float aBlending;
+in float aSpriteType;
 
 out vec2 texCoord;
 out float color;
@@ -15,6 +16,7 @@ out float groupGroup;
 out float texIndex;
 out vec4 hsv;
 out float blending;
+out float spriteType;
 
 uniform mat4 ProjectionMatrix;
 
@@ -27,6 +29,7 @@ void main() {
     texIndex = aTexIndex;
     hsv = aHSV;
     blending = aBlending;
+    spriteType = aSpriteType;
 
     vec3 groupGroupPosition = vec3(
         texelFetch(groupGroupTexture, ivec2(1, groupGroup), 0).xy,

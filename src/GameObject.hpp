@@ -25,6 +25,8 @@ struct GameObjectProperties {
     bool usingOldColor = false;
     bool spawnTriggered = false;
 
+    bool isTrigger = false;
+
     float duration = 1.0f;
     int targetChannel = 1;
     int targetGroup = 1;

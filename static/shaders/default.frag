@@ -7,6 +7,7 @@ in float groupGroup;
 in float texIndex;
 in vec4 hsv;
 in float blending;
+in float spriteType;
 
 out vec4 fragColor;
 
@@ -14,6 +15,8 @@ uniform sampler2D textures[6];
 
 uniform sampler2D colorTexture;
 uniform sampler2D groupGroupTexture;
+
+uniform int[1] visibilities;
 
 vec3 rgb2hsv(vec3 c)
 {
@@ -59,6 +62,10 @@ vec4 shiftHSV(vec4 color, float h, float s, float v, bool addS, bool addV) {
 }
 
 void main() {
+    if (spriteType >= 0.0 && visibilities[int(spriteType)] == 0) {
+        discard;
+    }
+    
     float blendingVal = texelFetch(colorTexture, ivec2(1, color), 0).x;
     bool additiveBlending = blendingVal > 0.5;
 

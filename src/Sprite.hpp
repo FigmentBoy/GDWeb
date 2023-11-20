@@ -29,7 +29,8 @@ public:
     HSVAColor m_colorDelta = {0, 1, 1};
 
     float m_alphaModifier = 1.0f;
-
+    float m_spriteType = -1.0f;
+    
     int m_textureIndex = 0;
     int m_objectIndex = -1;
     float m_batchZLayer = 0.0f;
@@ -40,7 +41,7 @@ public:
     std::unique_ptr<EBO> m_ebo;
     bool m_setup = false;
     
-    GLfloat m_verticies[48];
+    GLfloat m_verticies[52];
     GLuint m_indicies[6] = {
         0, 2, 1, // Upper triangle
         0, 3, 2 // Lower triangle
