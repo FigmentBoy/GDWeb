@@ -37,7 +37,7 @@ void Level::decodeLevelString() {
     std::replace(m_levelString.begin(), m_levelString.end(), '_', '/');
 	std::replace(m_levelString.begin(), m_levelString.end(), '-', '+');
 
-    bool gzip = m_levelString.rfind("H4sIAAAAAAAAC", 0) == 0;
+    bool gzip = m_levelString.rfind("H4sIAAA", 0) == 0;
     auto decompressFunction = gzip ? libdeflate_gzip_decompress : libdeflate_zlib_decompress;
     
 	std::string decoded;
