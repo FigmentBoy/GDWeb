@@ -30,6 +30,8 @@ export class NGSong implements Song {
     }
 
     setAsCurrentSong() {
+        (<any>window).Module._pause();
+
         (<any> window).Module.audio = new Audio(this.link);
         currSong.set(this);
     }
@@ -62,6 +64,8 @@ export class NONGSong implements Song {
     }
 
     setAsCurrentSong() {
+        (<any>window).Module._pause();
+
         let audio = new Audio();
         audio.crossOrigin = "anonymous";
         audio.src = this.link;

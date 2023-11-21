@@ -2,7 +2,7 @@
     import Card from './components/Card.svelte';
     import { onMount } from 'svelte';
 
-    import { type Song, NGSong, NONGSong, type RAWNONGSong } from './types/Song';
+    import { type Song, NONGSong, type RAWNONGSong } from './types/Song';
 
     import { LevelObject } from './types/LevelObject';
     import Modal from './components/Modal.svelte';
@@ -24,8 +24,7 @@
             .then(response => response.map(song => new NONGSong(song)))
             .then(response => {
                 songs = [newLevel!.song!, ...response]
-                console.log(songs)
-                document.getElementById("songlist")?.scrollTo(0, 0);
+                document.getElementById("songlist")?.scrollTo(0, 0)
             })
     });
 
