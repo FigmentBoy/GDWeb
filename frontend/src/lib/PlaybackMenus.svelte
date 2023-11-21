@@ -23,7 +23,9 @@
             .then(async response => await response.json() as Promise<RAWNONGSong[]>)
             .then(response => response.map(song => new NONGSong(song)))
             .then(response => {
-                songs = [newLevel!.song!, ...response]
+                if (newLevel?.song) songs = [newLevel?.song, ...response]
+                else songs = response;
+                
                 document.getElementById("songlist")?.scrollTo(0, 0)
             })
     });
