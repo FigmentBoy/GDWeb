@@ -10,6 +10,81 @@ export interface Song {
     setAsCurrentSong(): any;
 }
 
+const officialNames = [
+    "Stereo Madness",
+    "Back On Track",
+    "Polargeist",
+    "Dry Out",
+    "Base After Base",
+    "Cant Let Go",
+    "Jumper",
+    "Time Machine",
+    "Cycles",
+    "xStep",
+    "Clutterfunk",
+    "Theory of Everything",
+    "Electroman Adventures",
+    "Clubstep",
+    "Electrodynamix",
+    "Hexagon Force",
+    "Blast Processing",
+    "Theory of Everything 2",
+    "Geometrical Dominator",
+    "Deadlocked",
+    "Fingerdash",
+];
+
+const officialAuthors = [
+    "ForeverBound",
+    "DJVI",
+    "Step",
+    "DJVI",
+    "DJVI",
+    "DJVI",
+    "Waterflame",
+    "Waterflame",
+    "DJVI",
+    "DJVI",
+    "Waterflame",
+    "DJ-Nate",
+    "Waterflame",
+    "DJ-Nate",
+    "DJ-Nate",
+    "Waterflame",
+    "Waterflame",
+    "DJ-Nate",
+    "Waterflame",
+    "F-777",
+    "MDK",
+];
+
+export class OfficialSong implements Song {
+    name: string;
+    author: string;
+    link: string;
+
+    constructor(id: number) {
+        this.name = officialNames[id];
+        this.author = officialAuthors[id];
+        this.link = `/officialSongs/${id}.mp3`;
+    }
+
+    getName() {
+        return this.name;
+    }
+
+    getCaption() {
+        return `By ${this.author} (Official)`;
+    }
+
+    setAsCurrentSong() {
+        (<any>window).Module._pause();
+
+        (<any> window).Module.audio = new Audio(this.link);
+        currSong.set(this);
+    }
+}
+
 export class NGSong implements Song {
     name: string;
     author: string;

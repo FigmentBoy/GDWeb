@@ -5,7 +5,7 @@
 	import Divider from './components/Divider.svelte';
 	import SearchBar from './components/SearchBar.svelte';
 	import Card from './components/Card.svelte';
-    import { NGSong } from './types/Song';
+    import { NGSong, OfficialSong } from './types/Song';
 
     import { currLevel } from './CurrentLevel';
 
@@ -37,10 +37,15 @@
             let songName = song.match(/~2~\|~[^~]*/g)
 
             if (songID && songName && songAuthor && songID.length > 0 && songName.length > 0 && songAuthor.length > 0) {
-                levels.filter(level => level.songID == parseInt(songID![0].substring(5))).forEach(level => level.song = new NGSong(songName![0].substring(5), songAuthor![0].substring(5), level.songID));
+                levels.filter(level => level.songID == parseInt(songID![0].substring(5))).forEach(level => {
+                    level.song = new NGSong(songName![0].substring(5), songAuthor![0].substring(5), level.songID)
+                });
             }
         }
 
+        levels.filter(level => level.officialSong).forEach(level => level.song = new OfficialSong(level.songID));
+
+        console.log(levels)
         const levellist = document.getElementById("levellist");
         if (levellist) levellist.scrollTo(0, 0);
     }

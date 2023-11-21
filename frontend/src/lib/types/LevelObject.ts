@@ -8,6 +8,7 @@ export class LevelObject {
     authorID: String = "";
     authorName: String = "Unknown";
 
+    officialSong: boolean = true;    
     songID: number = 0;
     song: Song | null = null;
 
@@ -66,6 +67,7 @@ export class LevelObject {
                     break;
                 case "12":
                     this.songID = parseInt(value);
+                    this.officialSong = true;
                     break;
                 case "17":
                     this.demon = value == "1";
@@ -79,7 +81,10 @@ export class LevelObject {
                     }
                     break;
                 case "35":
-                    this.songID = parseInt(value);
+                    if (value != "0") {
+                        this.songID = parseInt(value);
+                        this.officialSong = false;
+                    }
                     break;
                 case "42":
                     this.epic = value == "1";

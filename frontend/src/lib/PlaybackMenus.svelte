@@ -19,6 +19,11 @@
         if (!newLevel) return;
 
         newLevel.song?.setAsCurrentSong();
+        if (newLevel.officialSong) {
+            songs = [newLevel.song!];
+            return;
+        };
+
         fetch(`https://api.songfilehub.com/songs?songID=${newLevel.songID}`)
             .then(async response => await response.json() as Promise<RAWNONGSong[]>)
             .then(response => response.map(song => new NONGSong(song)))
