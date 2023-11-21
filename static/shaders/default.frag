@@ -115,15 +115,8 @@ void main() {
     }
 
     if (additiveBlending) {
-        // Seen in GameObject::getActiveColorForMode
-        vec3 shiftedColor = shiftHSV(channelColor, 0.0, 0.65, 0.15, false, false).rgb;
-
-        // This exact formula (specifically the scale factor) may be slightly off, but it looks correct to me
-        float alpha = channelColor.a * fragColor.a;
-        channelColor.rgb = mix(shiftedColor, channelColor.rgb, pow(alpha, 2.0));
-        
         fragColor *= channelColor;
-        fragColor.rgb *= alpha;
+        fragColor.rgb *= pow(fragColor.a, 2.0);
         fragColor.a = 0.0;
     } else {
         fragColor *= channelColor;
