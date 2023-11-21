@@ -4,7 +4,7 @@
 
 </script>
 
-<a href="https://github.com/FigmentBoy/GDWeb">
+<a href="https://github.com/FigmentBoy/GDWeb" target="_blank">
     <Card class="fixed bottom-4 left-4 cursor-pointer h-12 w-12 flex justify-center items-center py-0">
         <i class="fa-brands fa-github fa-xl" />
     </Card>

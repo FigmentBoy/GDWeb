@@ -6,11 +6,11 @@
 #include <emscripten.h>
 
 EMSCRIPTEN_KEEPALIVE
-void loadLevel(char* name, char* string, int audioTrack) {
-    Director::get()->swapRootNode(new LevelLoadingLayer(new Level(name, string, audioTrack)));
-    
-    free(name);
+void loadLevel(char* string) {
+    std::string levelString = string;
     free(string);
+
+    Director::get()->swapRootNode(new LevelLoadingLayer(new Level(levelString)));    
 }
 
 void* loadLevelThread(void* ptr) {

@@ -42,7 +42,7 @@
             <h1 class="text-2xl font-bold">Settings</h1>
 
             <button class="w-8 h-8" on:click={closeMenu}>
-                <i class="fas fa-times" />
+                <i class="fas fa-times translate-x-1/2" />
             </button>
         </div>
         <Divider />

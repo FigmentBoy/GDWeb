@@ -20,15 +20,8 @@ Level* Level::fromGMD(std::string path) {
     }
 
     Level* level = new Level();
-
-    level->m_levelName = boost::any_cast<std::string>(dict["k2"]);
-    level->m_levelString = boost::any_cast<std::string>(dict["k4"]);
-    
-    level->m_audioTrack = dict.find("k8") == dict.end() ? dict.find("k45") == dict.end() ? 1 : boost::any_cast<int64_t>(dict["k45"]) : boost::any_cast<int64_t>(dict["k8"]);
-    
-    printf("Decoding level string\n");
+    level->m_levelString = boost::any_cast<std::string>(dict["k4"]);    
     level->decodeLevelString();
-    printf("Level string decoded\n");
 
     return level;
 }

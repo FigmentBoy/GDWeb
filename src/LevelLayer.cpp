@@ -35,11 +35,6 @@ LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level
     Director::get()->m_camera->m_position = {-512, -128};
     m_prevMousePos = Director::get()->m_mousePosition;
 
-    MAIN_THREAD_EM_ASM({
-        Module.audio = new Audio('/audio/' + $0);
-        Module.audio.load();
-    }, m_level->m_audioTrack);
-
     if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.05f;
     parseLevelString();
     if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.1f;
@@ -220,37 +215,39 @@ void LevelLayer::parseColor(std::string colorString) {
 
     RGBAColor baseColor;
     int copyColor = 0;
+    bool copyOpacity = false;
+    float opacity = 1.0f;
     bool blending = false;
     int index = 1;
     HSVAColor inheritedDelta = {0, 1, 1};
 
     for (int i = 0; i < channelSplit.size(); i += 2) {
         switch (std::stoi(channelSplit[i])) {
-            case (1):
+            case 1:
                 baseColor.r = std::stoi(channelSplit[i + 1]) / 255.f;
                 break;
-            case (2):
+            case 2:
                 baseColor.g = std::stoi(channelSplit[i + 1]) / 255.f;
                 break;
-            case (3):
+            case 3:
                 baseColor.b = std::stoi(channelSplit[i + 1]) / 255.f;
                 break;
-            case (4):
+            case 4:
                 // channel->m_playerColor = true;
                 break;
-            case (5):
+            case 5:
                 blending = true;
                 break;
-            case (6):
+            case 6:
                 index = std::stoi(channelSplit[i + 1]);
                 break;
-            case (7):
+            case 7:
                 baseColor.a = std::stof(channelSplit[i + 1]);
                 break;
-            case (9):
+            case 9:
                 copyColor = std::stoi(channelSplit[i + 1]);
                 break;
-            case (10):
+            case 10: {
                 std::vector<std::string> hsvaSplit = split(channelSplit[i + 1], "a");
                 inheritedDelta.h = std::stof(hsvaSplit[0]);
                 inheritedDelta.s = std::stof(hsvaSplit[1]);
@@ -259,6 +256,13 @@ void LevelLayer::parseColor(std::string colorString) {
                 inheritedDelta.addS = std::stoi(hsvaSplit[3]);
                 inheritedDelta.addV = std::stoi(hsvaSplit[4]);
 
+                break;
+            }     
+            case 15:
+                opacity = std::stof(channelSplit[i + 1]);
+                break;
+            case 17:
+                copyOpacity = std::stoi(channelSplit[i + 1]);
                 break;
         }
     }
@@ -274,6 +278,8 @@ void LevelLayer::parseColor(std::string colorString) {
     m_colorChannels[index]->m_inheritedDelta = inheritedDelta;
     if (copyColor != 0) {
         m_colorChannels[index]->m_colorCopied = true;
+        m_colorChannels[index]->m_copyOpacity = copyOpacity;
+        m_colorChannels[index]->m_copiedOpacity = opacity;
         m_colorChannels[index]->m_parentChannel = m_colorChannels[copyColor];
         m_colorChannels[copyColor]->m_childChannels.push_back(m_colorChannels[index]);
     }

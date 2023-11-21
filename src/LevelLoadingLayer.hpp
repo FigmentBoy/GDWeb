@@ -1,7 +1,7 @@
 #include "LoadingLayer.hpp"
 
 extern "C" {
-    void loadLevel(char* name, char* string, int audioTrack);
+    void loadLevel(char* string);
 };
 
 class LevelLayer;

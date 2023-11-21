@@ -38,7 +38,8 @@ ColorChannelValue ColorChannel::valueFor(float time) {
 
 ColorChannelValue ColorChannel::valueForWithoutPulses(float time) {
     ColorChannelValue res = {m_colorCopied && m_parentChannel ? m_parentChannel->valueFor(time).shift(m_inheritedDelta) : m_baseColor, m_baseBlending};
-
+    if (m_colorCopied && !m_copyOpacity) res.a = m_copiedOpacity;
+    
     if (m_colorTriggers && m_colorTriggers->m_changes.lower_bound(time) != m_colorTriggers->m_changes.begin()) {
         res = m_colorTriggers->valueFor(time);
     }

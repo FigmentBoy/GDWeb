@@ -5,6 +5,9 @@
 	import Divider from './components/Divider.svelte';
 	import SearchBar from './components/SearchBar.svelte';
 	import Card from './components/Card.svelte';
+    import { NGSong } from './types/Song';
+
+    import { currLevel } from './CurrentLevel';
 
     let menuOpen: boolean = false;
 
@@ -18,10 +21,27 @@
 
     let onSearch = async (query: string) => {
         const response = await fetch(`/search/${encodeURIComponent(query)}`).then(async response => await response.text());
-        levels = response.split("#")[0].split("|").map(level => new LevelObject(level));
-        
+        let components = response.split("#")
+
+        levels = components[0].split("|").map(level => new LevelObject(level));
+
+        for (let user of components[1].split("|")) {
+            let userComponents = user.split(":");
+            levels.filter(level => level.authorID == userComponents[0] || level.authorID == userComponents[2]).forEach(level => level.authorName = userComponents[1]);
+        }
+
+        for (let song of components[2].split(":")) {
+            let songID = song.match(/1~\|~[^~]*/g)
+            let songAuthor = song.match(/4~\|~[^~]*/g)
+            let songName = song.match(/2~\|~[^~]*/g)
+
+            if (songID && songName && songAuthor && songID.length > 0 && songName.length > 0 && songAuthor.length > 0) {
+                levels.filter(level => level.songID == parseInt(songID![0].substring(4))).forEach(level => level.song = new NGSong(songName![0].substring(4), songAuthor![0].substring(4), level.songID));
+            }
+        }
+
         const levellist = document.getElementById("levellist");
-        if (levellist) levellist.scrollTop = 0;
+        if (levellist) levellist.scrollTo(0, 0);
     }
 
     let levels: LevelObject[] = [];
@@ -31,10 +51,14 @@
         closeMenu();
 
         const response = await fetch(`/level/${level.id}`).then(async response => await response.text());
-        const levelDataObject = new LevelObject(response);
+        
+        let detailedLevel = new LevelObject(response);
+        detailedLevel.song = level.song;
 
         const win: any = <any>window;
-        win.Module._loadLevel(win.stringToNewUTF8(levelDataObject.name), win.stringToNewUTF8(levelDataObject.levelString), levelDataObject.song);
+        win.Module._loadLevel(win.stringToNewUTF8(detailedLevel.levelString));
+
+        currLevel.set(detailedLevel);
     }
 </script>
 
@@ -44,7 +68,7 @@
             <h1 class="text-2xl font-bold">Levels</h1>
 
             <button class="w-8 h-8" on:click={closeMenu}>
-                <i class="fas fa-times" />
+                <i class="fas fa-times translate-x-1/2" />
             </button>
         </div>
         <SearchBar placeholder={"Level Name or ID"} {onSearch} />
