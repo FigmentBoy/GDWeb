@@ -1,7 +1,7 @@
 #pragma once
 #include <array>	
 
-std::array<int, 67> HIDE_TRIGGERS = { // From GDBrowser
+std::array HIDE_TRIGGERS = { // From GDBrowser
     29,	    30,	    31,	    32,	    33,	
     34,	    104,	105,	221,	717,	
     718,	743,	744,	899,	900,	
@@ -15,5 +15,6 @@ std::array<int, 67> HIDE_TRIGGERS = { // From GDBrowser
     1913,	1914,	1916,	1917,	1931,	
     1932,	1934,	1935,	2015,	2016,	
     2062,	2067,	2068,	2701,	2702,
-    1586,   1700                                // Particle Triggers
+    1586,   1700,                                // Particle Triggers
+    1755,   1813,   1829,   1859,                // Those invisible blocks (S blocks, D bloxks)
 };

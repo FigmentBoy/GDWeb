@@ -217,7 +217,6 @@ void LevelLayer::parseColor(std::string colorString) {
     RGBAColor baseColor;
     int copyColor = 0;
     bool copyOpacity = false;
-    float opacity = 1.0f;
     bool blending = false;
     int index = 1;
     HSVAColor inheritedDelta = {0, 1, 1};
@@ -259,9 +258,6 @@ void LevelLayer::parseColor(std::string colorString) {
 
                 break;
             }     
-            case 15:
-                opacity = std::stof(channelSplit[i + 1]);
-                break;
             case 17:
                 copyOpacity = std::stoi(channelSplit[i + 1]);
                 break;
@@ -280,7 +276,6 @@ void LevelLayer::parseColor(std::string colorString) {
     if (copyColor != 0) {
         m_colorChannels[index]->m_colorCopied = true;
         m_colorChannels[index]->m_copyOpacity = copyOpacity;
-        m_colorChannels[index]->m_copiedOpacity = opacity;
         m_colorChannels[index]->m_parentChannel = m_colorChannels[copyColor];
         m_colorChannels[copyColor]->m_childChannels.push_back(m_colorChannels[index]);
     }

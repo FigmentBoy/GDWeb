@@ -17,7 +17,6 @@ public:
     bool m_textureBlending;
     
     bool m_copyOpacity = false;
-    float m_copiedOpacity = 1.0f;
 
     RGBAColor m_baseColor;
 
