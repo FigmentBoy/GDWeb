@@ -65,6 +65,9 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             case 10:
                 m_properties->duration = std::stof(value);
                 break;
+            case 13:
+                m_properties->checked = std::stoi(value);
+                break;
             case 17:
                 m_properties->toColorBlending = std::stoi(value);
                 break;
@@ -294,7 +297,7 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
         m_properties->isTrigger = true;
     }
 
-    if (!m_properties->spawnTriggered) {
+    if (!m_properties->spawnTriggered && m_properties->checked) {
         // Trigger Setup
         // We will go through and change it to be time based after all objects are loaded
         switch (m_id) {

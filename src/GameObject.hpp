@@ -25,6 +25,7 @@ struct GameObjectProperties {
     bool usingOldColor = false;
     bool spawnTriggered = false;
 
+    bool checked = true;
     bool isTrigger = false;
 
     float duration = 1.0f;

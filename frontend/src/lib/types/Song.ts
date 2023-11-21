@@ -26,7 +26,7 @@ export class NGSong implements Song {
     }
 
     getCaption() {
-        return this.author;
+        return `By ${this.author} (Newgrounds)`;
     }
 
     setAsCurrentSong() {

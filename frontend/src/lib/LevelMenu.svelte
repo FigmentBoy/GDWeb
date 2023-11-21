@@ -30,13 +30,14 @@
             levels.filter(level => level.authorID == userComponents[0] || level.authorID == userComponents[2]).forEach(level => level.authorName = userComponents[1]);
         }
 
-        for (let song of components[2].split(":")) {
-            let songID = song.match(/1~\|~[^~]*/g)
-            let songAuthor = song.match(/4~\|~[^~]*/g)
-            let songName = song.match(/2~\|~[^~]*/g)
+        for (let song of components[2].split("~:~")) {
+            song = `~${song}~`
+            let songID = song.match(/~1~\|~[^~]*/g)
+            let songAuthor = song.match(/~4~\|~[^~]*/g)
+            let songName = song.match(/~2~\|~[^~]*/g)
 
             if (songID && songName && songAuthor && songID.length > 0 && songName.length > 0 && songAuthor.length > 0) {
-                levels.filter(level => level.songID == parseInt(songID![0].substring(4))).forEach(level => level.song = new NGSong(songName![0].substring(4), songAuthor![0].substring(4), level.songID));
+                levels.filter(level => level.songID == parseInt(songID![0].substring(5))).forEach(level => level.song = new NGSong(songName![0].substring(5), songAuthor![0].substring(5), level.songID));
             }
         }
 
