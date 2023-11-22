@@ -81,6 +81,7 @@ export class OfficialSong implements Song {
         (<any>window).Module._pause();
 
         (<any> window).Module.audio = new Audio(this.link);
+        (<any> window).Module.audio.load();
         currSong.set(this);
     }
 }
@@ -108,6 +109,7 @@ export class NGSong implements Song {
         (<any>window).Module._pause();
 
         (<any> window).Module.audio = new Audio(this.link);
+        (<any> window).Module.audio.load();
         currSong.set(this);
     }
 }
@@ -146,6 +148,7 @@ export class NONGSong implements Song {
         audio.src = this.link;
 
         (<any> window).Module.audio = audio;
+        (<any> window).Module.audio.load();
         currSong.set(this);
     }
 }
