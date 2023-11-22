@@ -77,7 +77,7 @@ public:
     float timeForX(float x);
     float xForTime(float time);
 
-    void parseColor(std::string colorString);
+    void parseColor(std::string colorString, int base = 1);
     void parseLevelString();
     void parseLevelProperties();
     void setupObjects();

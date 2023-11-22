@@ -286,8 +286,8 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
 
     json gameObjectJson = m_gameObjectsJson[std::to_string(m_id)];
 
-    if (!hasZLayer) m_zLayer = gameObjectJson["default_z_layer"].get<int>();
-    if (!hasZOrder) m_zOrder = gameObjectJson["default_z_order"].get<int>();
+    if (!hasZLayer && gameObjectJson.contains("default_z_layer")) m_zLayer = gameObjectJson["default_z_layer"].get<int>();
+    if (!hasZOrder && gameObjectJson.contains("default_z_order")) m_zOrder = gameObjectJson["default_z_order"].get<int>();
 
     m_originalPosition = m_position;
     m_groupGroupIndex = GroupGroup::getGroupGroupIndex(m_properties->m_groups);

@@ -213,7 +213,7 @@ void LevelLayer::parseLevelString() {
     }
 }
 
-void LevelLayer::parseColor(std::string colorString) {
+void LevelLayer::parseColor(std::string colorString, int base) {
     std::vector<std::string> channelSplit = split(colorString, "_");
     if (channelSplit.size() < 2) return;
 
@@ -221,7 +221,7 @@ void LevelLayer::parseColor(std::string colorString) {
     int copyColor = 0;
     bool copyOpacity = false;
     bool blending = false;
-    int index = 1;
+    int index = base;
     HSVAColor inheritedDelta = {0, 1, 1};
 
     for (int i = 0; i < channelSplit.size(); i += 2) {
@@ -370,6 +370,24 @@ void LevelLayer::parseLevelProperties() {
             m_colorChannels[1004]->m_baseColor.g = std::stoi(value) / 255.f;
         } else if (key == "kS15") {
             m_colorChannels[1004]->m_baseColor.b = std::stoi(value) / 255.f;
+        } else if (key == "kS29") {
+            parseColor(value, 1000);
+        } else if (key == "kS30") {
+            parseColor(value, 1001);
+        } else if (key == "kS31") {
+            parseColor(value, 1002);
+        } else if (key == "kS32") {
+            parseColor(value, 1004);
+        } else if (key == "kS33") {
+            parseColor(value, 1);
+        } else if (key == "kS34") {
+            parseColor(value, 2);
+        } else if (key == "kS35") {
+            parseColor(value, 3);
+        } else if (key == "kS36") {
+            parseColor(value, 4);
+        } else if (key == "kS37") {
+            parseColor(value, 1003);
         }  else if (key == "kS38") {
             std::vector<std::string> colorChannelSplit = split(value, "|");
             for (auto& colorChannel : colorChannelSplit) {
