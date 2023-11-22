@@ -28,6 +28,7 @@ public:
 
 struct PositionValue {
     Point val;
+    std::vector<std::pair<float, float>> lockTimes = {};
 };
 
 class LevelLayer;
@@ -46,7 +47,7 @@ public:
     CompoundTypeChanger<PositionValue>(PositionValue toValue, float duration, easingFunction func, float rate, float m_positionX, bool lockX, LevelLayer* layer) : PositionChangeBase(toValue, duration), func(func), rate(rate), m_positionX(m_positionX), lockX(lockX), layer(layer) {};
 
     PositionValue finalValue(PositionValue startValue);
-    Point getContribution(float x);
+    PositionValue getContribution(float x);
     PositionValue valueFor(float x);
 };
 

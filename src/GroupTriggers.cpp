@@ -11,24 +11,42 @@ ToggleValue ToggleChange::valueFor(float x) {
 }
 
 PositionValue PositionChange::finalValue(PositionValue startValue) {
-    return {startValue.val + m_toValue.val};
+    std::vector<std::pair<float, float>> lockTimes = startValue.lockTimes;
+    if (lockX) {
+        lockTimes.push_back({m_positionTime, m_positionTime + m_duration});
+        lockTimes = merge(lockTimes);
+    }
+    return {startValue.val + m_toValue.val, lockTimes};
 }
 
-Point PositionChange::getContribution(float x) {
+PositionValue PositionChange::getContribution(float x) {
     Point val = m_toValue.val * func(std::min(x / m_duration, 1.0f), rate);
+    std::vector<std::pair<float, float>> lockTimes = {};
     if (lockX) {
-        val.x += layer->xForTime(m_positionTime + std::min(x, m_duration)) - m_positionX;
+        lockTimes.push_back({m_positionTime, m_positionTime + std::min(x, m_duration)});
     }
-    return val;
+    return {val, lockTimes};
 }
 
 PositionValue PositionChange::valueFor(float x)  {
-    PositionValue result = {m_fromValue.val + getContribution(x)};
+    PositionValue result = m_fromValue;
+
+    PositionValue contribution = getContribution(x);
+    result.val += contribution.val;
+    result.lockTimes.insert(result.lockTimes.end(), contribution.lockTimes.begin(), contribution.lockTimes.end());
 
     for (auto& [time, changes] : m_changes) {
         for (auto& change : changes) {
-            result.val += change->getContribution(x - time);
+            PositionValue contribution = change->getContribution(x - time);
+            result.val += contribution.val;
+            result.lockTimes.insert(result.lockTimes.end(), contribution.lockTimes.begin(), contribution.lockTimes.end());
         }
+    }
+
+    result.lockTimes = merge(result.lockTimes);
+
+    for (auto& [start, end] : result.lockTimes) {
+        result.val.x += layer->xForTime(end) - layer->xForTime(start);
     }
 
     return result;

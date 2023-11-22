@@ -5,6 +5,24 @@
 #include <vector>
 #include <stdexcept>
 
+// Thank you leetcode
+inline std::vector<std::pair<float, float>> merge(std::vector<std::pair<float, float>>& intervals) {
+    std::sort(intervals.begin(), intervals.end(), [](std::pair<float, float>& a, std::pair<float, float>& b) {
+        return a.first < b.first;
+    });
+
+    std::vector<std::pair<float, float>> output;
+    for(auto interval : intervals){
+        if(output.empty() || output.back().second < interval.first){
+            output.push_back(interval);
+        }
+        else{
+            output.back().second = std::max(output.back().second, interval.second);
+        }
+    }
+    return output;
+}
+
 template<typename ... Args>
 inline std::string string_format( const std::string& format, Args ... args )
 {
