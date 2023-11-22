@@ -32,8 +32,11 @@ void pause() {
 LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level), m_loadingLayer(loadingLayer) {
     m_instance = this;
 
-    Director::get()->m_camera->m_position = {-512, -128};
-    Director::get()->m_camera->m_viewScale = {1, 1};
+    auto camera = Director::get()->m_camera;
+
+    camera->m_viewScale = {1, 1};
+    camera->m_position = {-camera->getPlayerX(), -128};
+
     m_prevMousePos = Director::get()->m_mousePosition;
 
     if (m_loadingLayer) m_loadingLayer->m_percentDone = 0.05f;
