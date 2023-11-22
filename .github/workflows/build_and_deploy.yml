@@ -30,8 +30,8 @@ jobs:
       - name: Setup emscripten
         uses: mymindstorm/setup-emsdk@v11
         with:
-          emscripten-version: ${{env.EMSDK_VERSION}}
-          cache: emsdk-cache
+          version: ${{env.EMSDK_VERSION}}
+          actions-cache-folder: emsdk-cache
         
       - name: Setup Ninja
         run: sudo apt-get install -y ninja-build
