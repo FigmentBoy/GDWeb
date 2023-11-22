@@ -35,7 +35,7 @@ LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level
     auto camera = Director::get()->m_camera;
 
     camera->m_viewScale = {1, 1};
-    camera->m_position = {-camera->getPlayerX(), -128};
+    camera->m_position = {camera->m_position.x - camera->getPlayerX(), -128};
 
     m_prevMousePos = Director::get()->m_mousePosition;
 
