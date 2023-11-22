@@ -45,7 +45,6 @@
 
         levels.filter(level => level.officialSong).forEach(level => level.song = new OfficialSong(level.songID));
 
-        console.log(levels)
         const levellist = document.getElementById("levellist");
         if (levellist) levellist.scrollTo(0, 0);
     }
