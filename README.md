@@ -2,7 +2,7 @@
 A web-based Geometry Dash level viewer using Emscripten and WebGL
 ## Building
 ### Building the WebASM Rendering Engine:
-1. Be sure to have the [emsdk](https://github.com/emscripten-core/emsdk), (cmake)[https://cmake.org/], [Ninja](https://ninja-build.org/), and [clang/llvm](https://clang.llvm.org/) installed on your device
+1. Be sure to have the [emsdk](https://github.com/emscripten-core/emsdk), [cmake](https://cmake.org/), [Ninja](https://ninja-build.org/), and [clang/llvm](https://clang.llvm.org/) installed on your device
 2. In the root folder of the repository, run the following configuration command:
   ```bash
   emcmake cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=[Release/RelWithDebInfo/Debug]
