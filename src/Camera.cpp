@@ -13,7 +13,7 @@ Camera::Camera() {
 }
 
 float Camera::getPlayerX() {
-    return m_position.x + (m_viewSize.x * m_viewScale.x * 0.5f) - 70.0f;
+    return m_position.x + (m_viewSize.x * m_viewScale.x * 0.5f) - 90.0f;
 }
 
 Rect Camera::getViewRect() {
