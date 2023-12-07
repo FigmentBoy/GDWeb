@@ -22,6 +22,16 @@ extern "C" {
     void pause();
 }
 
+struct Triggers {
+    std::map<int, std::map<float, std::shared_ptr<AlphaChange>>> alphaChanges;
+    std::map<int, std::map<float, std::vector<std::shared_ptr<PositionChange>>>> positionChanges;
+    std::map<int, std::map<float, std::shared_ptr<ToggleChange>>> toggleChanges;
+    std::map<int, std::map<float, std::shared_ptr<ColorChange>>> colorChanges;
+    std::map<int, std::map<float, std::vector<std::shared_ptr<PulseChange>>>> pulseChanges;
+    std::map<int, std::vector<float>> stopTriggers;
+    std::map<float, std::shared_ptr<InverseSpeedChange>> inverseSpeedChanges;
+};
+
 class LoadingLayer;
 
 class LevelLayer : public Node {
@@ -36,27 +46,18 @@ public:
     bool m_autoScroll = false;
     Point m_prevMousePos;
 
+    Triggers m_rawTriggerData;
+    Triggers m_spawnTriggerData;
+
     std::vector<std::shared_ptr<ColorChannel>> m_colorChannels; //kS38
-    std::map<int, std::map<float, std::shared_ptr<ColorChange>>> m_rawColorChanges;
     std::vector<int> m_colorChannelsWithChanges;
 
     std::vector<std::shared_ptr<Group>> m_groups;
-    
-    std::map<int, std::map<float, std::shared_ptr<AlphaChange>>> m_rawAlphaChanges;
     std::vector<int> m_groupsWithAlphaChanges;
-
-    std::map<int, std::map<float, std::vector<std::shared_ptr<PositionChange>>>> m_rawPositionChanges;
     std::vector<int> m_groupsWithPositionChanges;
-
-    std::map<int, std::map<float, std::shared_ptr<ToggleChange>>> m_rawToggleChanges;
     std::vector<int> m_groupsWithToggleChanges;
 
-    std::map<int, std::map<float, std::vector<std::shared_ptr<PulseChange>>>> m_rawPulseChanges;
-    std::unique_ptr<GameEffect<PulseChange>> m_pulseChanges;
-
     std::unique_ptr<GameEffect<SpeedChange>> m_speedChanges;
-
-    std::map<float, std::shared_ptr<InverseSpeedChange>> m_rawInverseSpeedChanges;
     std::unique_ptr<GameEffect<InverseSpeedChange>> m_inverseSpeedChanges;
 
     std::map<std::string, std::string> m_levelProperties;
@@ -64,8 +65,6 @@ public:
 
     std::shared_ptr<Batcher> m_levelBatcher;
     std::shared_ptr<Node> m_nonBatchedObjectContainer;
-
-    std::map<int, std::vector<float>> m_stopTriggerLocations;
 
     int m_groundIndex;
     int m_backgroundIndex;

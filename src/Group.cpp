@@ -1,4 +1,5 @@
 #include "Group.hpp"
+#include "LevelLayer.hpp"
 #include <iostream>
 
 void GroupGroup::updateAlpha() {
@@ -25,9 +26,23 @@ void GroupGroup::updateAlpha() {
 }
 
 void GroupGroup::updatePosition() {
+    if (!dirty) {
+        return;
+    }
+
+    dirty = false;
     Point position = {0, 0};
+    std::vector<std::pair<float, float>> lockTimes;
+
     for (auto& group : m_groups) {
         position += group->m_position;
+        lockTimes.insert(lockTimes.end(), group->m_lockTimes.begin(), group->m_lockTimes.end());
+    }
+
+    lockTimes = merge(lockTimes);
+
+    for (auto& [start, end] : lockTimes) {
+        position.x += m_layer->xForTime(end) - m_layer->xForTime(start);
     }
 
     GLfloat data[4] = {
@@ -60,11 +75,17 @@ void Group::updatePositionChanges(float time) {
         return;
     }
 
-    auto old = m_position;
-    m_position = m_positionChanges->valueFor(time).val;
-    if (old != m_position) {
+    auto oldVal = m_position;
+    auto oldLockTimes = m_lockTimes;
+
+    auto newVal = m_positionChanges->valueFor(time);
+
+    m_position = newVal.val;
+    m_lockTimes = newVal.lockTimes;
+
+    if (oldVal != m_position || oldLockTimes != m_lockTimes) {
         for (auto& groupGroup : m_groupGroups) {
-            groupGroup->updatePosition();
+            groupGroup->dirty = true;
         }
     }
 }
@@ -83,14 +104,8 @@ void Group::updateToggleChanges(float time) {
     }
 }
 
-void Group::addStopTrigger(float time) {
-    if (m_alphaTriggers) {
-        auto [alphaTriggerTime, alphaTrigger] = m_alphaTriggers->mostRecent(time);
-        alphaTrigger->m_cacheAfter = std::min(alphaTrigger->m_cacheAfter, time - alphaTriggerTime);
-    }
-
-    if (m_positionChanges) {
-        auto [positionChangeTime, positionChange] = m_positionChanges->mostRecent(time);
-        positionChange->m_cacheAfter = std::min(positionChange->m_cacheAfter, time - positionChangeTime);
+void Group::addStop(float time) {
+    for (auto& child : m_childTriggers) {
+        child->m_stopAfter = std::min(child->m_stopAfter, time - child->m_position);
     }
 }

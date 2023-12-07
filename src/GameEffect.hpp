@@ -19,8 +19,14 @@
 template <typename T>
 class TypeChanger;
 
+class TriggerBase {
+public:
+    float m_position = 0.0f;
+    float m_stopAfter = std::numeric_limits<float>::infinity();
+};
+
 template <typename T>
-class BaseTypeChanger {
+class BaseTypeChanger : public TriggerBase {
 public:
     using Type = T;
 
@@ -42,7 +48,12 @@ public:
         m_duration = duration;
         m_cacheAfter = m_duration;
     }
-    BaseTypeChanger(Type toValue, Type fromValue, float duration) : m_toValue(toValue), m_fromValue(fromValue), m_duration(duration), m_cacheAfter(duration) {};
+    BaseTypeChanger(Type toValue, Type fromValue, float duration) {
+        m_toValue = toValue;
+        m_fromValue = fromValue;
+        m_duration = duration;
+        m_cacheAfter = duration;
+    };
 
     /**
      * @brief Returns the value of this changer at a given time
@@ -116,7 +127,6 @@ public:
             std::unique_ptr<Changer> changer = std::make_unique<Changer>(m_startingValue);
 
             m_cachedValue = changer->valueFor(x);
-
             if (x < changer->m_cacheAfter) return m_cachedValue;
         
             m_cachedValueMin = changer->m_cacheAfter;

@@ -13,13 +13,33 @@ void GameObject::loadGameObjectsJson() {
     m_gameObjectsJson = json::parse(i);
 }
 
-void GameObject::setupColorTrigger(int channel) {
+std::shared_ptr<ColorChange> GameObject::setupColorTrigger() {
     if (m_properties->copyChannelID != -1) {
-        m_layer->m_rawColorChanges[channel].insert({m_position.x, ColorChange::copyColorChange(m_layer->m_colorChannels[m_properties->copyChannelID], m_properties->copyChannelDelta, std::max(0.0f, m_properties->duration), m_properties->toColorBlending, m_properties->copyOpacity, m_properties->toColor.a)});
+        return ColorChange::copyColorChange(m_layer->m_colorChannels[m_properties->copyChannelID], m_properties->copyChannelDelta, std::max(0.0f, m_properties->duration), m_properties->toColorBlending, m_properties->copyOpacity, m_properties->toColor.a);
     } else {
-        m_layer->m_rawColorChanges[channel].insert({m_position.x, std::make_shared<ColorChange>(ColorChannelValue {m_properties->toColor, m_properties->toColorBlending}, std::max(0.0f, m_properties->duration))});
+        return std::make_shared<ColorChange>(ColorChannelValue {m_properties->toColor, m_properties->toColorBlending}, std::max(0.0f, m_properties->duration));
     }
 }
+
+std::vector<int> GameObject::getEffectiveIDs(int id) {
+    if (!m_properties->spawnTriggered) return {id};
+    
+    std::vector<int> ids;
+    for (auto& group : m_properties->m_groups) {
+        ids.push_back(group->m_index);
+    }
+    return ids;
+}
+
+#define ADD_TO_TRIGGER_MAP(map, id)                                                                 \
+    for (auto& insertID : getEffectiveIDs(id)) {                                                    \
+        triggers->map[insertID].insert({m_properties->spawnTriggered ? id : m_position.x, trigger}); \
+    }
+
+#define ADD_TO_COMPOUND_TRIGGER_MAP(map, id)                                                        \
+    for (auto& insertID : getEffectiveIDs(id)) {                                                    \
+        triggers->map[insertID][m_properties->spawnTriggered ? id : m_position.x].push_back(trigger);\
+    }
 
 GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, LevelLayer* layer) {
     if (m_gameObjectsJson.empty()) {
@@ -297,63 +317,99 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
         m_properties->isTrigger = true;
     }
 
-    if (!m_properties->spawnTriggered && m_properties->checked) {
-        // Trigger Setup
-        // We will go through and change it to be time based after all objects are loaded
-        switch (m_id) {
-            case 29:
-                setupColorTrigger(1000);
-                break;
-            case 30:
-                setupColorTrigger(1001);
-                break;
-            case 105:
-                setupColorTrigger(1004);
-                break;
-            case 899:
-                if (m_properties->targetChannel <= 0) break;
-                setupColorTrigger(m_properties->targetChannel);
-                break;
-            case 901:
-                if (m_properties->targetGroup <= 0) break;
-                layer->m_rawPositionChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PositionChange>(PositionValue {m_properties->movePosition}, std::max(0.0f, m_properties->duration), m_properties->function, m_properties->rate, m_position.x, m_properties->lockPlayerX, layer));
-                break;
-            case 1006: {
-                if (m_properties->channelType == PulseChannel::Group) break; // Groups hurt my brain
-                auto targetChannel = layer->m_colorChannels[m_properties->targetGroup];
-                layer->m_rawPulseChanges[m_properties->targetGroup][m_position.x].push_back(std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, targetChannel, m_properties->copyChannelID > 0 ? layer->m_colorChannels[m_properties->copyChannelID] : targetChannel, m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut));
-                break;
+    std::shared_ptr<TriggerBase> baseTrigger = nullptr;
+
+    // Trigger Setup
+    // We will go through and change it to be time based after all objects are loaded
+    auto triggers = m_properties->spawnTriggered ? &layer->m_spawnTriggerData : &layer->m_rawTriggerData;
+
+    switch (m_id) {
+        case 29: {
+            auto trigger = setupColorTrigger();
+            ADD_TO_TRIGGER_MAP(colorChanges, 1000);
+            break;
+        }
+        case 30: {
+            auto trigger = setupColorTrigger();
+            ADD_TO_TRIGGER_MAP(colorChanges, 1001);
+            break;
+        }
+        case 105: {
+            auto trigger = setupColorTrigger();
+            ADD_TO_TRIGGER_MAP(colorChanges, 1004);
+            break;
+        }
+        case 899: {
+            if (m_properties->targetChannel <= 0) break;
+            auto trigger = setupColorTrigger();
+            ADD_TO_TRIGGER_MAP(colorChanges, m_properties->targetChannel);
+            break;
+        }
+        case 901: {
+            if (m_properties->targetGroup <= 0) break;
+            auto trigger = std::make_shared<PositionChange>(PositionValue {m_properties->movePosition}, std::max(0.0f, m_properties->duration), m_properties->function, m_properties->rate, m_properties->lockPlayerX, layer);
+            ADD_TO_COMPOUND_TRIGGER_MAP(positionChanges, m_properties->targetGroup);
+            break;
+        }
+        case 1006: {
+            if (m_properties->channelType == PulseChannel::Group) break; // Groups hurt my brain
+            auto targetChannel = layer->m_colorChannels[m_properties->targetGroup];
+            auto trigger = std::make_shared<PulseChange>(m_properties->pulseExclusive, m_properties->pulseType, m_properties->toColor, targetChannel, m_properties->copyChannelID > 0 ? layer->m_colorChannels[m_properties->copyChannelID] : targetChannel, m_properties->copyChannelDelta, m_properties->fadeIn, m_properties->hold, m_properties->fadeOut);
+            ADD_TO_COMPOUND_TRIGGER_MAP(pulseChanges, m_properties->targetGroup);
+            break;
+        }
+        case 1007: {
+            if (m_properties->targetGroup < 0) break;
+            auto trigger = std::make_shared<AlphaChange>(AlphaValue {m_properties->toColor.a}, std::max(0.0f, m_properties->duration));
+            ADD_TO_TRIGGER_MAP(alphaChanges, m_properties->targetGroup);
+            break;
+        }
+        case 1616: {
+            for (auto& id : getEffectiveIDs(m_properties->targetGroup)) {
+                triggers->stopTriggers[id].push_back(m_properties->spawnTriggered ? m_properties->targetGroup : m_position.x);
             }
-            case 1007:
-                if (m_properties->targetGroup < 0) break;
-                layer->m_rawAlphaChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<AlphaChange>(AlphaValue {m_properties->toColor.a}, std::max(0.0f, m_properties->duration))});
-                break;
-            case 1616:
-                layer->m_stopTriggerLocations[m_properties->targetGroup].push_back(m_position.x);
-                break;
-            case 1049:
-                layer->m_rawToggleChanges[m_properties->targetGroup].insert({m_position.x, std::make_shared<ToggleChange>(ToggleValue {m_properties->activateGroup}, std::max(0.0f, m_properties->duration))});
-                break;
-            case 200:
-                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {251.16f})});
-                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 251.16f})});
-                break;
-            case 201:
-                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {311.58f})});
-                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 311.58f})});
-                break;
-            case 202:
-                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {387.42f})});
-                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 387.42f})});
-                break;
-            case 203:
-                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {468.0f})});
-                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 468.0f})});
-                break;
-            case 1334:
-                layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {576.0f})});
-                layer->m_rawInverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 576.0f})});
-                break;
+            break;
+        }
+        case 1049: {
+            auto trigger = std::make_shared<ToggleChange>(ToggleValue {m_properties->activateGroup}, std::max(0.0f, m_properties->duration));
+            ADD_TO_TRIGGER_MAP(toggleChanges, m_properties->targetGroup);
+            break;
+        }
+        case 200: {
+            if (!m_properties->checked) break;
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {251.16f})});
+            layer->m_rawTriggerData.inverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 251.16f})});
+            break;
+        }
+        case 201: {
+            if (!m_properties->checked) break;
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {311.58f})});
+            layer->m_rawTriggerData.inverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 311.58f})});
+            break;
+        }
+        case 202: {
+            if (!m_properties->checked) break;
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {387.42f})});
+            layer->m_rawTriggerData.inverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 387.42f})});
+            break;
+        }
+        case 203: {
+            if (!m_properties->checked) break;
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {468.0f})});
+            layer->m_rawTriggerData.inverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 468.0f})});
+            break;
+        }   
+        case 1334: {
+            if (!m_properties->checked) break;
+            layer->m_speedChanges->m_changes.insert({m_position.x, std::make_shared<SpeedChange>(SpeedValue {576.0f})});
+            layer->m_rawTriggerData.inverseSpeedChanges.insert({m_position.x, std::make_shared<InverseSpeedChange>(InverseSpeedValue {1.f / 576.0f})});
+            break;
+        }
+    }
+
+    if (!m_properties->spawnTriggered && baseTrigger) {
+        for (auto& group : m_properties->m_groups) {
+            group->m_childTriggers.push_back(baseTrigger);
         }
     }
 

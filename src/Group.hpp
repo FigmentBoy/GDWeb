@@ -4,14 +4,20 @@
 #include "GroupTriggers.hpp"
 
 class GroupGroup;
+class LevelLayer;
+
 class Group {
 public:
     int m_index;
     
     Point m_position;
+    std::vector<std::pair<float, float>> m_lockTimes;
+
     float m_rotation;
     float m_currAlpha;
     bool m_toggled = true;
+
+    std::vector<std::shared_ptr<TriggerBase>> m_childTriggers;
 
     std::unique_ptr<GameEffect<AlphaChange>> m_alphaTriggers;
     std::unique_ptr<GameEffect<PositionChange>> m_positionChanges;
@@ -25,7 +31,7 @@ public:
     void updatePositionChanges(float time);
     void updateToggleChanges(float time);
 
-    void addStopTrigger(float time);
+    void addStop(float time);
 };
 
 
@@ -33,6 +39,9 @@ class GroupGroup { // lol
 public:
     std::vector<std::shared_ptr<Group>> m_groups;
     std::shared_ptr<Texture> m_groupTexture;
+
+    LevelLayer* m_layer;
+    bool dirty = true;
 
     int m_index;
 

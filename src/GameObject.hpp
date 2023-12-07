@@ -93,7 +93,9 @@ public:
 
     GameObject(int id, std::map<std::string, std::string> const& obj = {}, LevelLayer* layer = nullptr);
 
-    void setupColorTrigger(int channel);
+    std::shared_ptr<ColorChange> setupColorTrigger();
+
+    std::vector<int> getEffectiveIDs(int id);
 
     void addChildSprite(std::shared_ptr<Sprite> parent, json children);
 };

@@ -21,7 +21,6 @@ public:
     HSVAColor m_inheritedDelta;
 
     RGBAColor m_lastBase = {-1, -1, -1};
-    float m_position;
 
     static std::unique_ptr<ColorChange> copyColorChange(std::shared_ptr<ColorChannel> channelToCopy, HSVAColor inheritedDelta, float duration, bool blending, bool copyOpacity, float opacity);
     ColorChannelValue valueFor(float x);
@@ -59,8 +58,6 @@ public:
     float m_lastPosition;
     RGBAColor m_lastPulse;
     RGBAColor m_lastBase = {-1, -1, -1};
-
-    float m_position;
 
     float m_fadeIn;
     float m_hold;

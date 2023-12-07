@@ -15,8 +15,7 @@ inline std::vector<std::pair<float, float>> merge(std::vector<std::pair<float, f
     for(auto interval : intervals){
         if(output.empty() || output.back().second < interval.first){
             output.push_back(interval);
-        }
-        else{
+        } else {
             output.back().second = std::max(output.back().second, interval.second);
         }
     }

@@ -63,6 +63,7 @@ LevelLayer::LevelLayer(Level* level, LoadingLayer* loadingLayer) : m_level(level
 
     for (auto& groupGroup : GroupGroup::m_groupGroups) {
         groupGroup->m_groupTexture = groupGroupTexture;
+        groupGroup->m_layer = this;
     }
 
     std::cout << "Setting up speed changes" << std::endl;
@@ -92,25 +93,25 @@ void LevelLayer::setupTriggers() {
 
     std::cout << "compiling inverse speed changes" << std::endl;
     m_inverseSpeedChanges = std::make_unique<GameEffect<InverseSpeedChange>>(InverseSpeedValue {1.0f / m_speedChanges->m_startingValue.val});
-    for (auto& [position, change] : m_rawInverseSpeedChanges) {
-        m_inverseSpeedChanges->m_changes.insert({timeForX(position), change});
+    for (auto& [position, change] : m_rawTriggerData.inverseSpeedChanges) {
+        change->m_position = timeForX(position);
+        m_inverseSpeedChanges->m_changes.insert({change->m_position, change});
     }
     m_inverseSpeedChanges->setup();
 
     std::cout << "compiling color triggers" << std::endl;
-    for (auto& [channel, changes] : m_rawColorChanges) {
+    for (auto& [channel, changes] : m_rawTriggerData.colorChanges) {
         m_colorChannels[channel]->m_colorTriggers = std::make_unique<GameEffect<ColorChange>>(ColorChannelValue {m_colorChannels[channel]->m_baseColor, m_colorChannels[channel]->m_blending});
         for (auto& [position, change] : changes) {
             change->m_position = timeForX(position);
             m_colorChannels[channel]->m_colorTriggers->m_changes.insert({change->m_position, change});
         }
-        m_colorChannels[channel]->m_colorTriggers->setup();
         m_colorChannelsWithChanges.push_back(channel);
     }
-    m_rawColorChanges.clear();
+    m_rawTriggerData.colorChanges.clear();
 
     std::cout << "compiling pulse triggers" << std::endl;
-    for (auto& [channel, changes] : m_rawPulseChanges) {
+    for (auto& [channel, changes] : m_rawTriggerData.pulseChanges) {
         m_colorChannels[channel]->m_pulseTriggers = std::make_unique<GameEffect<PulseChange>>(PulseValue {{}});
         for (auto& [position, triggers] : changes) {
             for (auto& change : triggers) {
@@ -118,43 +119,40 @@ void LevelLayer::setupTriggers() {
                 m_colorChannels[channel]->m_pulseTriggers->m_rawChanges[change->m_position].push_back(change);
             }
         }
-        m_colorChannels[channel]->m_pulseTriggers->setup();
 
         if (std::find(m_colorChannelsWithChanges.begin(), m_colorChannelsWithChanges.end(), channel) == m_colorChannelsWithChanges.end()) {
             m_colorChannelsWithChanges.push_back(channel);
         }
     }
-    m_rawPulseChanges.clear();
+    m_rawTriggerData.pulseChanges.clear();
 
     std::cout << "compiling alpha triggers" << std::endl;
-    for (auto& [group, changes] : m_rawAlphaChanges) {
+    for (auto& [group, changes] : m_rawTriggerData.alphaChanges) {
         m_groups[group]->m_alphaTriggers = std::make_unique<GameEffect<AlphaChange>>(AlphaValue {1.0f});
         for (auto& [position, change] : changes) {
-            m_groups[group]->m_alphaTriggers->m_changes.insert({timeForX(position), change});
+            change->m_position = timeForX(position);
+            m_groups[group]->m_alphaTriggers->m_changes.insert({change->m_position, change});
         }
-        m_groups[group]->m_alphaTriggers->setup();
         m_groupsWithAlphaChanges.push_back(group);
     }
-    m_rawAlphaChanges.clear();
+    m_rawTriggerData.alphaChanges.clear();
 
     std::cout << "compiling move triggers" << std::endl;
-    for (auto& [group, changes] : m_rawPositionChanges) {
+    for (auto& [group, changes] : m_rawTriggerData.positionChanges) {
         m_groups[group]->m_positionChanges = std::make_unique<GameEffect<PositionChange>>(PositionValue {{0, 0}});
 
         for (auto& [position, changeVec] : changes) {
             for (auto& change : changeVec) {
-                change->m_positionTime = timeForX(position);
-                m_groups[group]->m_positionChanges->m_rawChanges[change->m_positionTime].push_back(change);
+                change->m_position = timeForX(position);
+                m_groups[group]->m_positionChanges->m_rawChanges[change->m_position].push_back(change);
             }
         }
-
-        m_groups[group]->m_positionChanges->setup();
         m_groupsWithPositionChanges.push_back(group);
     }
-    m_rawPositionChanges.clear();
+    m_rawTriggerData.positionChanges.clear();
 
     std::cout << "Compiling toggle triggers" << std::endl;
-    for (auto& [group, toggles] : m_rawToggleChanges) {
+    for (auto& [group, toggles] : m_rawTriggerData.toggleChanges) {
         m_groups[group]->m_toggleChanges = std::make_unique<GameEffect<ToggleChange>>(ToggleValue {true});
         for (auto& [position, change] : toggles) {
             m_groups[group]->m_toggleChanges->m_changes.insert({timeForX(position), change});
@@ -162,15 +160,29 @@ void LevelLayer::setupTriggers() {
         m_groups[group]->m_toggleChanges->setup();
         m_groupsWithToggleChanges.push_back(group);
     }
-    m_rawToggleChanges.clear();
+    m_rawTriggerData.toggleChanges.clear();
 
     std::cout << "Compiling stop triggers" << std::endl;
-    for (auto& [group, stops] : m_stopTriggerLocations) {
+    for (auto& [group, stops] : m_rawTriggerData.stopTriggers) {
         for (auto& stop : stops) {
-            m_groups[group]->addStopTrigger(timeForX(stop));
+            m_groups[group]->addStop(timeForX(stop));
         }
     }
-    m_stopTriggerLocations.clear();
+    m_rawTriggerData.stopTriggers.clear();
+
+    std::cout << "Compiling cached trigger values" << std::endl;
+    for (auto& channel : m_colorChannelsWithChanges) {
+        if (m_colorChannels[channel]->m_colorTriggers) m_colorChannels[channel]->m_colorTriggers->setup();
+        if (m_colorChannels[channel]->m_pulseTriggers) m_colorChannels[channel]->m_pulseTriggers->setup();
+    }
+
+    for (auto& group : m_groupsWithAlphaChanges) {
+        m_groups[group]->m_alphaTriggers->setup();
+    }
+
+    for (auto& group : m_groupsWithPositionChanges) {
+        m_groups[group]->m_positionChanges->setup();
+    }
 }
 
 void LevelLayer::updateTriggers(float rawTime) {
@@ -185,6 +197,10 @@ void LevelLayer::updateTriggers(float rawTime) {
 
     for (auto& group : m_groupsWithPositionChanges) {
         m_groups[group]->updatePositionChanges(time);
+    }
+
+    for (auto& groupGroup : GroupGroup::m_groupGroups) {
+        groupGroup->updatePosition();
     }
 
     for (auto& group : m_groupsWithToggleChanges) {
