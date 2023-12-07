@@ -207,6 +207,8 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                     case 18:
                         m_properties->function = getEasingFunction(EaseOutBack);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 32:
