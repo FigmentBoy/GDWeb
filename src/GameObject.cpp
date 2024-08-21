@@ -154,21 +154,27 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
             case 30:
                 switch (std::stoi(value)) {
                     case 1:
+                        if (m_properties->rate == -1.0f) m_properties->rate = 1.0f;
                         m_properties->function = getEasingFunction(EaseInOut);
                         break;
                     case 2:
+                        if (m_properties->rate == -1.0f) m_properties->rate = 1.0f;
                         m_properties->function = getEasingFunction(EaseIn);
                         break;
                     case 3:
+                        if (m_properties->rate == -1.0f) m_properties->rate = 1.0f;
                         m_properties->function = getEasingFunction(EaseOut);
                         break;
                     case 4:
+                        if (m_properties->rate == -1.0f) m_properties->rate = 0.3f;
                         m_properties->function = getEasingFunction(EaseInOutElastic);
                         break;
                     case 5:
+                        if (m_properties->rate == -1.0f) m_properties->rate = 0.3f;
                         m_properties->function = getEasingFunction(EaseInElastic);
                         break;
                     case 6:
+                        if (m_properties->rate == -1.0f) m_properties->rate = 0.3f;
                         m_properties->function = getEasingFunction(EaseOutElastic);
                         break;
                     case 7:
@@ -206,8 +212,6 @@ GameObject::GameObject(int id, std::map<std::string, std::string> const& obj, Le
                         break;
                     case 18:
                         m_properties->function = getEasingFunction(EaseOutBack);
-                        break;
-                    default:
                         break;
                 }
                 break;

@@ -36,8 +36,9 @@ struct GameObjectProperties {
     bool copyOpacity = false;
     std::vector<std::shared_ptr<Group>> m_groups;
 
-    easingFunction function = [](float t, float r) { return t; };
-    float rate = 1.0f;
+    easingFunction function = getEasingFunction(easing_functions::Linear);
+
+    float rate = -1.0f;
     bool lockPlayerX = false;
     bool activateGroup = false;
 
