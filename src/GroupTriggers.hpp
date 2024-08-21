@@ -37,7 +37,7 @@ $CreateCompoundTypeChanger(PositionValue, Position) {
 public:
     using PositionChangeBase::PositionChangeBase;
     
-    easingFunction func = [](float t, float r) { return t; };
+    easingFunction func = getEasingFunction(easing_functions::Linear);
     float rate;
     bool lockX = false;
     LevelLayer* layer;
